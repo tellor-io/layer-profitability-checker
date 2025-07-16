@@ -1,0 +1,4 @@
+pyyaml
+termcolor
+numpy
+matplotlib 

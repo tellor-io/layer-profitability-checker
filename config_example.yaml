@@ -1,0 +1,2 @@
+# run `which layerd` to see your path, or visit https://docs.tellor.io/layer-docs/running-tellor-layer/node-setup to get the binary set up
+layerd_path: /my/path/to/layerd
