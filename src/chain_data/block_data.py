@@ -3,7 +3,8 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
+
 from .rpc_client import TellorRPCClient
 
 
@@ -15,7 +16,7 @@ def get_block_height_and_timestamp(layerd_path, rpc_client: Optional[TellorRPCCl
             return rpc_client.get_block_height_and_timestamp()
         except Exception as e:
             print(f"Error getting block info via RPC: {e}")
-            raise Exception("RPC client is required - layerd binary fallback is disabled")
+            raise Exception("RPC client is required - layerd binary fallback is disabled") from e
     else:
         raise Exception("RPC client is required - layerd binary fallback is disabled")
 

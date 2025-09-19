@@ -52,16 +52,16 @@ def get_current_tip(rpc_client=None, config=None, query_data: str = None) -> Opt
             rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith('/rpc'):
                 rest_endpoint = rest_endpoint.replace('/rpc', '')
-            
+
             # Query current tip via REST API
             url = f"{rest_endpoint}/tellor-io/layer/oracle/get_current_tip/{query_data}"
             result = subprocess.run([
                 'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
             ], capture_output=True, text=True, check=True, timeout=10)
-            
+
             # Parse JSON response
             response = json.loads(result.stdout)
-            
+
             # Extract tip amount from response
             if 'tips' in response:
                 tip_amount = float(response['tips'])
@@ -77,7 +77,7 @@ def get_current_tip(rpc_client=None, config=None, query_data: str = None) -> Opt
 
             # Convert from loya to TRB (assuming 1 TRB = 1e6 loya)
             return tip_amount * 1e-6
-            
+
         else:
             # Fallback to layerd binary if RPC client not available
             if config and 'layerd_path' in config and query_data:
@@ -215,16 +215,16 @@ def get_available_tips(rpc_client=None, config=None, selector_address: str = Non
             rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith('/rpc'):
                 rest_endpoint = rest_endpoint.replace('/rpc', '')
-            
+
             # Query available tips via REST API
             url = f"{rest_endpoint}/tellor-io/layer/reporter/available-tips/{selector_address}"
             result = subprocess.run([
                 'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
             ], capture_output=True, text=True, check=True, timeout=10)
-            
+
             # Parse JSON response
             response = json.loads(result.stdout)
-            
+
             # Extract available tips amount from response
             if 'available_tips' in response:
                 tips_amount_str = response['available_tips']
@@ -240,9 +240,9 @@ def get_available_tips(rpc_client=None, config=None, selector_address: str = Non
 
             # Convert from loya to TRB (1 TRB = 1e6 loya)
             tips_amount = float(tips_amount_str) / 1e6
-            
+
             return tips_amount
-            
+
         else:
             # Fallback to layerd binary if RPC client not available
             if config and 'layerd_path' in config and selector_address:
@@ -280,7 +280,7 @@ def get_available_tips(rpc_client=None, config=None, selector_address: str = Non
 
                 # Convert from loya to TRB (1 TRB = 1e6 loya)
                 tips_amount = float(tips_amount_str) / 1e6
-                
+
                 return tips_amount
             else:
                 print("Warning: No RPC client, config, or selector_address available")

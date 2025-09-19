@@ -8,15 +8,14 @@ from .apr import (
     generate_apr_chart,
     print_reporter_apr_table,
 )
+from .chain_data.abci_queries import TellorABCIClient
 from .chain_data.block_data import get_average_block_time
-from .chain_data.node_data import get_chain_id
+from .chain_data.rpc_client import TellorRPCClient
 from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_mint_events,
     query_recent_reports,
 )
-from .chain_data.rpc_client import TellorRPCClient
-from .chain_data.abci_queries import TellorABCIClient
 from .display_helpers import (
     print_box_and_whisker,
     print_distribution_chart,
@@ -57,13 +56,13 @@ def main():
     # load configuration
     with open("config.yaml") as f:
         config = yaml.safe_load(f)
-    
+
     # Initialize RPC client (unified approach)
     rpc_endpoint = config.get("rpc_endpoint", "http://localhost:26657")
     print(f"Using RPC endpoint: {rpc_endpoint}")
     rpc_client = TellorRPCClient(rpc_endpoint)
     abci_client = TellorABCIClient(rpc_client)
-    
+
     # layerd_path is no longer needed - everything uses RPC client
     # But some functions still expect it, so we'll pass None
     layerd_path = None
@@ -199,13 +198,13 @@ def main():
         "Yearly Fee Cost": f"~ {yearly_fee_cost_trb:,.1f} TRB"
     }
     print_info_box("fee projections", projection_data)
-    
+
     # Check if fee paid is significantly higher than gas cost
     if avg_fee >= avg_gas_cost + 2:
         excess_fee = int(avg_fee - avg_gas_cost)  # Use floor (int) since fees are whole numbers
         yearly_savings_loya = excess_fee * reports_per_day * 365
         yearly_savings_trb = yearly_savings_loya * 1e-6  # Convert to TRB
-        
+
         print(f"\n\033[1m💡 You could be lowering your avg fee paid by {excess_fee} loya, which would save ~ {yearly_savings_loya:.0f} loya per year ({yearly_savings_trb:.1f} TRB)\033[0m")
         print()
 

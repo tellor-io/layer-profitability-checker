@@ -1,8 +1,7 @@
+import base64
 import json
 import subprocess
-import base64
-import struct
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from ..module_data.globalfee import get_min_gas_price
 from .block_data import get_block_height_and_timestamp
@@ -41,15 +40,15 @@ def parse_submit_value_transaction(tx_base64: str) -> Optional[Dict[str, Any]]:
     try:
         # Decode base64
         tx_bytes = base64.b64decode(tx_base64)
-        
+
         # Convert to string for pattern matching
         tx_str = tx_bytes.decode('latin-1', errors='ignore')
-        
+
         # Find the reporter address (starts with "tellor1")
         import re
         tellor_pattern = r'tellor1[a-z0-9]{38}'
         reporter_matches = re.findall(tellor_pattern, tx_str)
-        
+
         if reporter_matches:
             reporter = reporter_matches[0]
             return {
@@ -59,7 +58,7 @@ def parse_submit_value_transaction(tx_base64: str) -> Optional[Dict[str, Any]]:
             }
         else:
             return None
-            
+
     except Exception as e:
         print(f"Error parsing transaction: {e}")
         return None
@@ -82,22 +81,22 @@ def query_recent_reports(layerd_path=None, rpc_client: Optional[TellorRPCClient]
     while len(all_txs) < limit and height <= current_height:
         try:
             print(f"Searching block {height}...")
-            
+
             if rpc_client is not None:
                 # Query block directly and look for transactions
                 block_response = rpc_client.get_block_with_txs(height)
                 block_data = block_response.get('result', {}).get('block', {})
-                
+
                 # Get block results for gas and fee information
                 block_results_response = rpc_client.get_block_results(height)
                 block_results = block_results_response.get('result', {})
-                
+
                 block_txs = []
-                
+
                 # Extract transactions from block
                 txs = block_data.get('data', {}).get('txs', [])
                 txs_results = block_results.get('txs_results', [])
-                
+
                 for i, tx_encoded in enumerate(txs):
                     try:
                         # Parse the transaction to check if it's a MsgSubmitValue
@@ -107,10 +106,10 @@ def query_recent_reports(layerd_path=None, rpc_client: Optional[TellorRPCClient]
                             tx_result = txs_results[i] if i < len(txs_results) else {}
                             gas_wanted = tx_result.get('gas_wanted', '0')
                             gas_used = tx_result.get('gas_used', '0')
-                            
+
                             # Extract fee information from block results
                             fee_amount = extract_fee_from_tx_result(tx_result)
-                            
+
                             block_txs.append({
                                 'height': height,
                                 'tx': tx_encoded,
@@ -250,7 +249,7 @@ def analyze_submit_value_transactions(tx_response, layerd_path, rpc_client=None,
             # Old format: parsed transaction object
             gas_wanted = int(tx.get('gas_wanted', 0))
             gas_used = int(tx.get('gas_used', 0))
-            
+
             # Extract fee info
             fee_amount = 0
             auth_info = tx.get('tx', {}).get('auth_info', {})
@@ -383,7 +382,7 @@ def query_mint_events(layerd_path=None, start_height=None, end_height=None, rpc_
             'events': mint_events,
             'event_count': len(mint_events)
         }
-    
+
     else:
         raise Exception("RPC client is required - layerd binary fallback is disabled")
 

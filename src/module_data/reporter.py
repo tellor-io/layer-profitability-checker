@@ -1,6 +1,6 @@
-import subprocess
 import json
-from typing import Dict, List, Optional
+import subprocess
+from typing import Dict, List
 
 import yaml
 
@@ -21,13 +21,13 @@ def get_reporters(rpc_client=None, config=None) -> tuple[Dict[str, List[Dict[str
             rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith('/rpc'):
                 rest_endpoint = rest_endpoint.replace('/rpc', '')
-            
+
             # Query reporters via REST API
             url = f"{rest_endpoint}/tellor-io/layer/reporter/reporters"
             result = subprocess.run([
                 'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
             ], capture_output=True, text=True, check=True, timeout=10)
-            
+
             # Parse JSON response
             reporters_data = json.loads(result.stdout)
         else:

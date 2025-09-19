@@ -1,8 +1,10 @@
 import subprocess
+from typing import Optional
+
 import yaml
-from typing import Optional, Tuple, List
-from ..chain_data.rpc_client import TellorRPCClient
+
 from ..chain_data.abci_queries import TellorABCIClient
+from ..chain_data.rpc_client import TellorRPCClient
 
 
 def get_layerd_path():
@@ -59,18 +61,18 @@ def process_validator_data(data):
 
     # Check if this is REST API format (has tokens) or layerd format (has tokens)
     is_rest_api_format = validators and 'tokens' in validators[0]
-    
+
     if is_rest_api_format:
         # REST API format: has actual token amounts
         for validator in validators:
             tokens_str = validator.get('tokens', '0')
             # Convert from uloya to TRB (divide by 1,000,000) and round to 6 decimals
             tokens = round(int(tokens_str) / 1_000_000, 6)  # Convert uloya to TRB
-            
+
             # Check if validator is active (not jailed and has tokens)
             is_jailed = validator.get('jailed', False)
             status = validator.get('status', '')
-            
+
             if not is_jailed and status == 'BOND_STATUS_BONDED' and tokens > 0:
                 total_tokens_active += tokens
                 active_count += 1

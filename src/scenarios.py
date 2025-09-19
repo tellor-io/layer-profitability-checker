@@ -206,18 +206,18 @@ def format_targets_for_display_with_apr(targets, current_total_stake, stake_resu
     try:
         stake_amounts_trb = stake_results['stake_amounts_trb']
         aprs = stake_results['weighted_avg_aprs']
-        
+
         # Ensure we have valid data
         if len(stake_amounts_trb) > 0 and len(aprs) > 0 and len(stake_amounts_trb) == len(aprs):
             # Find the APR at current stake level using interpolation
             current_apr = np.interp(current_stake_trb, stake_amounts_trb, aprs)
-            
+
             # Add current APR
             display_dict[f"{current_apr:.1f}% APR (Current)"] = f"{current_stake_trb:,.0f} TRB"
         else:
             # Fallback if data is invalid
             display_dict["Current APR"] = "Unable to calculate"
-    except Exception as e:
+    except Exception:
         # Fallback if interpolation fails
         display_dict["Current APR"] = "Unable to calculate"
 

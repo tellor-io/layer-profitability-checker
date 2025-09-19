@@ -36,12 +36,12 @@ def print_info_box(title, data_dict, separators=None):
 def print_table(title, headers, rows):
     """Print a beautifully formatted table with proper border alignment"""
     import re
-    
+
     def strip_ansi(text):
         """Remove ANSI escape codes from text for width calculation"""
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', str(text))
-    
+
     # Calculate column widths with proper padding
     col_widths = []
     for i in range(len(headers)):
