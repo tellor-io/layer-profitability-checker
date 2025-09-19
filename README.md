@@ -7,16 +7,18 @@ A comprehensive analysis tool for evaluating validator/reporter profitability on
 ```bash
 # Clone and setup
 git clone <repository-url>
+
 cd profitability_checker
+
 # Install UV
 # https://docs.astral.sh/uv/#installation
 
 uv sync
+
 cp config_example.yaml config.yaml
 
-# Configure your layerd path
-which layerd  # Copy this path
-# Edit config.yaml and paste the path
+# Configure your RPC endpoint
+# Edit config.yaml and set your RPC endpoint URL
 
 # Run the tool
 uv run prof-check
@@ -25,14 +27,14 @@ uv run prof-check
 ## Requirements
 
 - Python 3.9+
-- `layerd` binary with synced node
+- RPC endpoint (no synced node required)
 - UV package manager: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ## Configuration
 
 Edit `config.yaml`:
 ```yaml
-layerd_path: /path/to/your/layerd  # Required
+rpc_endpoint: http://localhost:26657  # Required - RPC endpoint URL
 account_address: your_address_here  # Optional
 query_datas: [...]
 ```
@@ -69,7 +71,7 @@ uv sync                  # Update after changes
 
 This tool is provided as-is for analysis purposes. Projections are under perfect operating conditions.
 
-- Queries live blockchain data via `layerd` binary
+- Queries live blockchain data via RPC endpoints
 - Event-based TBR detection using CometBFT RPC
 - Real-time validation with deterministic calculations
 - APR = (annual_profit / stake_amount) * 100

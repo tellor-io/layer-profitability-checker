@@ -1,10 +1,11 @@
 import subprocess
-from typing import Dict, List
+import json
+from typing import Dict, List, Optional
 
 import yaml
 
 
-def get_reporters(layerd_path: str) -> tuple[Dict[str, List[Dict[str, any]]], Dict[str, str]]:
+def get_reporters(rpc_client=None, config=None) -> tuple[Dict[str, List[Dict[str, any]]], Dict[str, str]]:
     """
     Queries reporter data and separates active vs inactive vs jailed reporters.
 
@@ -14,16 +15,38 @@ def get_reporters(layerd_path: str) -> tuple[Dict[str, List[Dict[str, any]]], Di
         - Dict with summary metrics formatted for print_info_box
     """
     try:
-        # Run the layerd query command
-        result = subprocess.run(
-            [layerd_path, 'query', 'reporter', 'reporters'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-
-        # Parse YAML output
-        reporters_data = yaml.safe_load(result.stdout)
+        # Use REST API to query reporters
+        if rpc_client is not None:
+            # Get the REST endpoint from RPC client
+            rest_endpoint = rpc_client.rpc_endpoint
+            if rest_endpoint.endswith('/rpc'):
+                rest_endpoint = rest_endpoint.replace('/rpc', '')
+            
+            # Query reporters via REST API
+            url = f"{rest_endpoint}/tellor-io/layer/reporter/reporters"
+            result = subprocess.run([
+                'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
+            ], capture_output=True, text=True, check=True, timeout=10)
+            
+            # Parse JSON response
+            reporters_data = json.loads(result.stdout)
+        else:
+            # Fallback to layerd binary if RPC client not available
+            if config and 'layerd_path' in config:
+                layerd_path = config['layerd_path']
+                result = subprocess.run(
+                    [layerd_path, 'query', 'reporter', 'reporters'],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                # Parse YAML output
+                reporters_data = yaml.safe_load(result.stdout)
+            else:
+                print("Error: No RPC client or layerd_path available")
+                empty_summary = {'Total Reporters': '0', 'Active Reporters': '0', 'Inactive Reporters': '0',
+                                'Jailed Reporters': '0', 'Total Active Power': '0'}
+                return ({'active': [], 'inactive': [], 'jailed': []}, empty_summary)
 
         active_reporters = []
         inactive_reporters = []
@@ -109,13 +132,13 @@ def get_reporters(layerd_path: str) -> tuple[Dict[str, List[Dict[str, any]]], Di
         return detailed_dict, summary_dict
 
     except subprocess.CalledProcessError as e:
-        print(f"Error running layerd query: {e}")
+        print(f"Error querying reporters: {e}")
         print(f"stderr: {e.stderr}")
         empty_summary = {'Total Reporters': '0', 'Active Reporters': '0', 'Inactive Reporters': '0',
                         'Jailed Reporters': '0', 'Total Active Power': '0'}
         return ({'active': [], 'inactive': [], 'jailed': []}, empty_summary)
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML: {e}")
+    except (json.JSONDecodeError, yaml.YAMLError) as e:
+        print(f"Error parsing response: {e}")
         empty_summary = {'Total Reporters': '0', 'Active Reporters': '0', 'Inactive Reporters': '0',
                         'Jailed Reporters': '0', 'Total Active Power': '0'}
         return ({'active': [], 'inactive': [], 'jailed': []}, empty_summary)

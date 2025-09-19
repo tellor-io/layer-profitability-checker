@@ -60,11 +60,15 @@ def generate_stake_amount_scenarios(base_total_stake, avg_mint_amount, avg_fee, 
     reports_per_block = 0.5
     reports_per_year = blocks_per_year * reports_per_block
 
+    # Convert TRB inputs to loya for calculations
+    avg_mint_amount_loya = avg_mint_amount * 1e6
+    avg_fee_loya = avg_fee * 1e6
+
     # Total mint per year (TBR)
-    total_mint_per_year = avg_mint_amount * blocks_per_year
+    total_mint_per_year = avg_mint_amount_loya * blocks_per_year
 
     # Total fees per year (reporting every other block)
-    total_fees_per_year = avg_fee * reports_per_year
+    total_fees_per_year = avg_fee_loya * reports_per_year
 
     # Calculate APR for each total stake level
     weighted_avg_aprs = []
@@ -95,11 +99,15 @@ def find_apr_targets(stake_amounts_trb, aprs, target_aprs, total_tokens_active, 
     reports_per_block = 0.5
     reports_per_year = blocks_per_year * reports_per_block
 
+    # Convert TRB inputs to loya for calculations
+    avg_mint_amount_loya = avg_mint_amount * 1e6
+    avg_fee_loya = avg_fee * 1e6
+
     # Total mint per year (TBR)
-    total_mint_per_year = avg_mint_amount * blocks_per_year
+    total_mint_per_year = avg_mint_amount_loya * blocks_per_year
 
     # Total fees per year (reporting every other block)
-    total_fees_per_year = avg_fee * reports_per_year
+    total_fees_per_year = avg_fee_loya * reports_per_year
 
     # Define meaningful total stake levels to show APR projections
     total_stake_levels_trb = [50000, 100000, 200000, 500000, 1000000, 2000000, 5000000, 10000000]
@@ -186,12 +194,32 @@ def run_scenarios_analysis(total_tokens_active, avg_mint_amount, avg_fee, avg_bl
 
 def format_targets_for_display_with_apr(targets, current_total_stake, stake_results):
     """Format target APR points for display in main.py info box including current APR"""
-    current_stake_trb = current_total_stake * 1e-6
+    # current_total_stake is already in TRB
+    current_stake_trb = current_total_stake
 
     display_dict = {}
 
     # Add current stake info first
     display_dict["Current Network Stake"] = f"{current_stake_trb:,.0f} TRB"
+
+    # Calculate APR at current stake level by interpolating from results
+    try:
+        stake_amounts_trb = stake_results['stake_amounts_trb']
+        aprs = stake_results['weighted_avg_aprs']
+        
+        # Ensure we have valid data
+        if len(stake_amounts_trb) > 0 and len(aprs) > 0 and len(stake_amounts_trb) == len(aprs):
+            # Find the APR at current stake level using interpolation
+            current_apr = np.interp(current_stake_trb, stake_amounts_trb, aprs)
+            
+            # Add current APR
+            display_dict[f"{current_apr:.1f}% APR (Current)"] = f"{current_stake_trb:,.0f} TRB"
+        else:
+            # Fallback if data is invalid
+            display_dict["Current APR"] = "Unable to calculate"
+    except Exception as e:
+        # Fallback if interpolation fails
+        display_dict["Current APR"] = "Unable to calculate"
 
     # Add target points in descending order
     sorted_targets = sorted(targets.items(), key=lambda x: x[0], reverse=True)

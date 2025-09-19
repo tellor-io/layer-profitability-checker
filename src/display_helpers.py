@@ -35,13 +35,21 @@ def print_info_box(title, data_dict, separators=None):
 
 def print_table(title, headers, rows):
     """Print a beautifully formatted table with proper border alignment"""
+    import re
+    
+    def strip_ansi(text):
+        """Remove ANSI escape codes from text for width calculation"""
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', str(text))
+    
     # Calculate column widths with proper padding
     col_widths = []
     for i in range(len(headers)):
         max_width = len(headers[i])
         for row in rows:
             if i < len(row):
-                max_width = max(max_width, len(str(row[i])))
+                # Use stripped length for width calculation
+                max_width = max(max_width, len(strip_ansi(row[i])))
         col_widths.append(max_width + 2)  # Add 2 for padding (1 space on each side)
 
     # Calculate total width: sum of column widths + separators between columns + outer borders
@@ -73,8 +81,11 @@ def print_table(title, headers, rows):
         row_line = "│"
         for i in range(len(headers)):
             cell_value = str(row[i]) if i < len(row) else ""
-            # Left align all columns
-            row_line += f" {cell_value:<{col_widths[i]-2}} "
+            # Calculate the visual width (without ANSI codes) for proper padding
+            visual_width = len(strip_ansi(cell_value))
+            padding_needed = col_widths[i] - 2 - visual_width
+            # Left align all columns with proper padding
+            row_line += f" {cell_value}{' ' * padding_needed} "
             if i < len(headers) - 1:
                 row_line += "│"
         row_line += "│"
@@ -95,8 +106,8 @@ def print_box_and_whisker(stakes, title="VALIDATOR DISTRIBUTION"):
     if not stakes:
         return
 
-    # Convert to TRB for display
-    stakes_trb = [stake * 1e-6 for stake in stakes]
+    # Stakes are already in TRB units
+    stakes_trb = stakes.copy()
     stakes_trb.sort()
 
     n = len(stakes_trb)
@@ -265,8 +276,8 @@ def print_distribution_chart(stakes, title="VALIDATOR COUNTS BY POWER"):
     if not stakes:
         return
 
-    # Convert to TRB for display
-    stakes_trb = [stake * 1e-6 for stake in stakes]
+    # Stakes are already in TRB units
+    stakes_trb = stakes.copy()
     stakes_trb.sort()
 
     min_stake = min(stakes_trb)

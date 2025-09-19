@@ -1,6 +1,16 @@
 # run `which layerd` to see your path, or visit https://docs.tellor.io/layer-docs/running-tellor-layer/node-setup to get the binary set up
 layerd_path: /my/path/to/layerd
 
+# RPC endpoint for mint events query (defaults to localhost if not specified)
+# rpc_endpoint: http://localhost:26657
+# rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
+# rpc_endpoint: https://mainnet.tellorlayer.com/rpc
+
+# Minimum gas price (in loya per gas unit) - used for cost calculations
+# If not specified, the tool will try to query this from the chain
+# Common values: 0.000025 (default), 0.0001, 0.001
+# min_gas_price: 0.000025
+
 # Optional: Your account address for checking available tips
 # account_address: tellor1alcefjzkk37qmfrnel8q4eruyll0pc8arxhxxw
 
