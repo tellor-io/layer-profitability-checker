@@ -1,7 +1,7 @@
-import pprint
 import subprocess
+
 import yaml
-import os
+
 
 def get_layerd_path():
     with open("config.yaml") as f:
@@ -32,14 +32,13 @@ def get_total_stake():
 
     # Extract validators from the response structure
     validators = data.get('validators', [])
-    num_validators = len(validators)
-    
+
     # Sum up tokens from all validators
     for validator in validators:
         tokens = int(validator.get('tokens', '0'))
         is_jailed = validator.get('jailed', False)
         status = validator.get('status', 0)
-        
+
         # Status 1 = UNBONDED, Status 2 = UNBONDING, Status 3 = BONDED
         if status == 3 and not is_jailed:
             # Only count validators with status 3 (BONDED) as active
@@ -80,10 +79,10 @@ def get_total_active_tokens():
 
     # Extract validators from the response structure
     validators = data.get('validators', [])
-    
+
     for validator in validators:
         status = validator.get('status', 0)
-        
+
         # Status 3 = BOND_STATUS_BONDED
         if status == 3:
             # Get the tokens amount (this should be in uip tokens)
@@ -97,12 +96,12 @@ def calculate_median_from_list(token_amounts):
     """Calculate median from a list of token amounts"""
     if not token_amounts:
         return 0
-    
+
     # Sort the amounts
     sorted_amounts = sorted(token_amounts)
-    
+
     n = len(sorted_amounts)
-    
+
     # Calculate median
     if n % 2 == 0:
         # Even number of values - average of middle two
@@ -110,7 +109,7 @@ def calculate_median_from_list(token_amounts):
     else:
         # Odd number of values - middle value
         median = sorted_amounts[n//2]
-    
+
     return median
 
 # Test the new function
