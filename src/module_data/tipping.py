@@ -187,19 +187,22 @@ def get_available_tips(layerd_path: str, selector_address: str) -> Optional[floa
 
         # Extract available tips amount from response
         if 'available_tips' in response:
-            tips_amount = float(response['available_tips'])
+            tips_amount_str = response['available_tips']
         elif 'tips' in response:
-            tips_amount = float(response['tips'])
+            tips_amount_str = response['tips']
         elif 'amount' in response:
-            tips_amount = float(response['amount'])
+            tips_amount_str = response['amount']
         elif 'value' in response:
-            tips_amount = float(response['value'])
+            tips_amount_str = response['value']
         else:
             # If the response is just a number
-            tips_amount = float(response)
+            tips_amount_str = str(response)
 
-        # Convert from loya to TRB (assuming 1 TRB = 1e6 loya)
-        return tips_amount * 1e-6
+        # Handle math.LegacyDec format (18 decimal places)
+        # Convert string to float and divide by 1e18 to get TRB
+        tips_amount = float(tips_amount_str) / 1e18
+        
+        return tips_amount
 
     except subprocess.TimeoutExpired:
         print("Warning: Query timeout for available tips")

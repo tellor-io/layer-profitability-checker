@@ -2,7 +2,7 @@
 layerd_path: /my/path/to/layerd
 
 # Optional: Your account address for checking available tips
-# account_address: layer1abc123...
+# account_address: tellor1alcefjzkk37qmfrnel8q4eruyll0pc8arxhxxw
 
 # Price feed queryDatas for tipping queries
 query_datas:
