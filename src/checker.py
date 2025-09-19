@@ -210,7 +210,7 @@ def main():
         available_tips = get_available_tips(layerd_path, config["account_address"])
         if available_tips is not None:
             account_tips_data = {
-                "Available Tips": f"{available_tips:.5f}"
+                "Available Tips": f"{available_tips:.5f} loya"
             }
             print_info_box("account available tips", account_tips_data)
         else:
