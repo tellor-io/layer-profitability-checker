@@ -56,19 +56,19 @@ def generate_apr_chart(total_tokens_active, avg_mint_amount, avg_fee, avg_block_
 
     # Add median stake point
     median_apr = calculate_apr_by_stake(median_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
-    plt.plot(median_stake * 1e-6, median_apr, 'ro', markersize=8, label='Current Median')
-    plt.annotate(f'({median_stake * 1e-6:.2f} TRB, {median_apr:.1f}% APR)',
-                xy=(median_stake * 1e-6, median_apr),
-                xytext=(median_stake * 1e-6 + 10, median_apr + 50),
-                fontsize=10, fontweight='bold',
-                arrowprops={'arrowstyle': '->', 'color': 'red', 'alpha': 0.7})
+    plt.plot(median_stake, median_apr, 'ro', markersize=8, label='Current Median')
+    plt.annotate(f'({median_stake:.2f} TRB, {median_apr:.1f}% APR)',
+            xy=(median_stake, median_apr),
+            xytext=(median_stake + 10, median_apr + 50),
+            fontsize=10, fontweight='bold',
+            arrowprops={'arrowstyle': '->', 'color': 'red', 'alpha': 0.7})
 
     # Add break-even point if found
     if break_even_stake:
-        plt.plot(break_even_stake * 1e-6, break_even_apr, 'go', markersize=8, label='Break-even')
-        plt.annotate(f'({break_even_stake * 1e-6:.2f} TRB, {break_even_apr:.1f}% APR)',
-                    xy=(break_even_stake * 1e-6, break_even_apr),
-                    xytext=(break_even_stake * 1e-6 + 5, break_even_apr + 80),
+        plt.plot(break_even_stake, break_even_apr, 'go', markersize=8, label='Break-even')
+        plt.annotate(f'({break_even_stake:.2f} TRB, {break_even_apr:.1f}% APR)',
+                xy=(break_even_stake, break_even_apr),
+                    xytext=(break_even_stake + 5, break_even_apr + 80),
                     fontsize=10, fontweight='bold',
                     arrowprops={'arrowstyle': '->', 'color': 'green', 'alpha': 0.7})
 
@@ -293,11 +293,10 @@ def calculate_reporter_aprs(reporters_data, total_tokens_active, avg_mint_amount
     reporter_aprs = []
 
     for reporter in reporters_data['active']:
-        # Power appears to be in TRB based on the values (1192, 1248, etc.)
+        # Power is in TRB (same units as total_tokens_active)
         power_trb = int(reporter['power']) if reporter['power'].isdigit() else 0
         if power_trb > 0:  # Only calculate for reporters with actual power
-            power_loya = power_trb * 1e6  # Convert TRB to loya for APR calculation
-            apr = calculate_apr_by_stake(power_loya, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+            apr = calculate_apr_by_stake(power_trb, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
 
             reporter_aprs.append({
                 'moniker': reporter['moniker'] or reporter['address'][:12] + '...',
