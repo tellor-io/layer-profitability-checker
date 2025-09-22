@@ -29,9 +29,12 @@ from .module_data.reporter import get_reporters
 from .module_data.staking import get_total_stake
 from .module_data.tipping import (
     format_tips_for_display,
+    format_user_tip_totals_for_display,
     get_all_current_tips,
+    get_all_user_tip_totals,
     get_available_tips,
     get_tipping_summary,
+    get_total_tips,
 )
 from .scenarios import format_targets_for_display_with_apr, run_scenarios_analysis
 
@@ -216,9 +219,25 @@ def main():
     # Get current tips for all price feeds
     current_tips = get_all_current_tips(rpc_client, config)
 
-    # Display tipping summary
+    # Get total tips all time
+    total_tips = get_total_tips(rpc_client)
+    
+    # Display tipping summary with custom ordering
     tipping_summary = get_tipping_summary(current_tips)
-    print_info_box("tipping summary", tipping_summary, separators=[2, 4])
+    
+    # Create ordered summary with Total Tips All Time at the top
+    ordered_summary = {}
+    if total_tips is not None:
+        ordered_summary["Total Tips All Time"] = f"{total_tips:.5f} TRB"
+    
+    # Add the rest in the requested order
+    ordered_summary["Total Tipped Queries"] = tipping_summary["Total Tipped Queries"]
+    ordered_summary["Total Tip Amount"] = tipping_summary["Total Tip Amount"]
+    ordered_summary["Average Tip"] = tipping_summary["Average Tip"]
+    ordered_summary["Highest Tip"] = tipping_summary["Highest Tip"]
+    ordered_summary["Lowest Tip"] = tipping_summary["Lowest Tip"]
+    
+    print_info_box("tipping summary", ordered_summary, separators=[1, 3])
 
     # Display tips table
     tip_headers, tip_rows = format_tips_for_display(current_tips)
@@ -238,6 +257,24 @@ def main():
     else:
         print("\n  No account address configured - skipping available tips query")
         print("  Add 'account_address: your_address_here' to config.yaml to enable this feature")
+
+    # Get all user tip totals
+    print_section_header("USER TIP TOTALS")
+    
+    # Get the REST endpoint from RPC client
+    rest_endpoint = rpc_client.rpc_endpoint
+    if rest_endpoint.endswith('/rpc'):
+        rest_endpoint = rest_endpoint.replace('/rpc', '')
+    
+    # Get all user tip totals
+    user_tip_totals = get_all_user_tip_totals(rest_endpoint)
+    
+    if user_tip_totals:
+        # Display user tip totals table
+        tip_totals_headers, tip_totals_rows = format_user_tip_totals_for_display(user_tip_totals)
+        print_table("user tip totals", tip_totals_headers, tip_totals_rows)
+    else:
+        print("  No addresses found with tip totals > 0")
 
     # calculate profitability metrics
     print_section_header("AVG/MEDIAN VALIDATOR'S PROJECTED PROFITABILITY")
