@@ -2,6 +2,7 @@
 Unified RPC client for Tellor Layer blockchain queries.
 Handles both localhost and public RPC endpoints consistently.
 """
+
 import json
 import subprocess
 from datetime import datetime
@@ -12,8 +13,10 @@ class TellorRPCClient:
     """Unified RPC client for Tellor Layer blockchain queries."""
 
     def __init__(self, rpc_endpoint: str = "http://localhost:26657"):
-        self.rpc_endpoint = rpc_endpoint.rstrip('/')
-        self.is_localhost = rpc_endpoint.startswith('http://localhost') or rpc_endpoint.startswith('http://127.0.0.1')
+        self.rpc_endpoint = rpc_endpoint.rstrip("/")
+        self.is_localhost = rpc_endpoint.startswith(
+            "http://localhost"
+        ) or rpc_endpoint.startswith("http://127.0.0.1")
 
     def query_rpc(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Query the RPC endpoint directly."""
@@ -27,9 +30,13 @@ class TellorRPCClient:
             url += "?" + "&".join(query_parts)
 
         try:
-            result = subprocess.run([
-                'curl', '-s', url
-            ], capture_output=True, text=True, check=True, timeout=30)
+            result = subprocess.run(
+                ["curl", "-s", url],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=30,
+            )
 
             return json.loads(result.stdout)
         except subprocess.CalledProcessError as e:
@@ -47,7 +54,9 @@ class TellorRPCClient:
         from datetime import datetime
 
         response = self.query_rpc("status")
-        latest_block_height = int(response["result"]["sync_info"]["latest_block_height"])
+        latest_block_height = int(
+            response["result"]["sync_info"]["latest_block_height"]
+        )
 
         # Get block details
         block_response = self.query_rpc("block", {"height": str(latest_block_height)})
@@ -55,18 +64,18 @@ class TellorRPCClient:
 
         # Parse timestamp string to datetime object
         # Handle nanoseconds by truncating to microseconds (Python only supports up to microseconds)
-        if '.' in timestamp_str:
-            if timestamp_str.endswith('Z'):
+        if "." in timestamp_str:
+            if timestamp_str.endswith("Z"):
                 # Format: 2025-05-28T20:35:31.196915692Z
                 base_time = timestamp_str[:-1]  # Remove Z
-                date_part, frac = base_time.split('.')
-                frac = frac[:6].ljust(6, '0')  # Truncate to microseconds
+                date_part, frac = base_time.split(".")
+                frac = frac[:6].ljust(6, "0")  # Truncate to microseconds
                 timestamp_str = f"{date_part}.{frac}+00:00"
-            elif '+' in timestamp_str:
+            elif "+" in timestamp_str:
                 # Format: 2025-05-28T20:35:31.196915692+00:00
-                base_time, tz = timestamp_str.split('+')
-                date_part, frac = base_time.split('.')
-                frac = frac[:6].ljust(6, '0')  # Truncate to microseconds
+                base_time, tz = timestamp_str.split("+")
+                date_part, frac = base_time.split(".")
+                frac = frac[:6].ljust(6, "0")  # Truncate to microseconds
                 timestamp_str = f"{date_part}.{frac}+{tz}"
 
         timestamp = datetime.fromisoformat(timestamp_str)
@@ -81,20 +90,34 @@ class TellorRPCClient:
         """Get validator set using Cosmos SDK REST API."""
         # Use the Cosmos SDK REST API instead of CometBFT RPC
         # Convert RPC endpoint to REST API endpoint
-        if self.rpc_endpoint.endswith('/rpc'):
-            rest_endpoint = self.rpc_endpoint.replace('/rpc', '')
+        if self.rpc_endpoint.endswith("/rpc"):
+            rest_endpoint = self.rpc_endpoint.replace("/rpc", "")
         else:
             rest_endpoint = self.rpc_endpoint
         url = f"{rest_endpoint}/cosmos/staking/v1beta1/validators"
 
         try:
-            result = subprocess.run([
-                'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json', '--silent', '--show-error'
-            ], capture_output=True, text=True, check=True, timeout=30)
+            result = subprocess.run(
+                [
+                    "curl",
+                    "-s",
+                    "-X",
+                    "GET",
+                    url,
+                    "-H",
+                    "accept: application/json",
+                    "--silent",
+                    "--show-error",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=30,
+            )
 
             # Clean the output - remove any progress information
             output = result.stdout.strip()
-            if output.startswith('{'):
+            if output.startswith("{"):
                 response = json.loads(output)
                 return response.get("validators", [])
             else:
@@ -104,7 +127,9 @@ class TellorRPCClient:
         except json.JSONDecodeError as e:
             raise Exception(f"Invalid JSON response: {e}") from e
 
-    def get_transactions(self, query: str = None, page: int = 1, per_page: int = 30) -> Dict[str, Any]:
+    def get_transactions(
+        self, query: str = None, page: int = 1, per_page: int = 30
+    ) -> Dict[str, Any]:
         """Search for transactions using block queries since tx_search is not available."""
         # Since tx_search is not working, we'll query blocks directly
         # This is a simplified implementation that returns empty results for now
@@ -115,12 +140,11 @@ class TellorRPCClient:
         """Get block with transactions for a specific height."""
         return self.query_rpc("block", {"height": str(height)})
 
-    def get_abci_query(self, path: str, data: str, height: int = None) -> Dict[str, Any]:
+    def get_abci_query(
+        self, path: str, data: str, height: int = None
+    ) -> Dict[str, Any]:
         """Query ABCI application state."""
-        params = {
-            "path": path,
-            "data": data
-        }
+        params = {"path": path, "data": data}
         if height:
             params["height"] = str(height)
 

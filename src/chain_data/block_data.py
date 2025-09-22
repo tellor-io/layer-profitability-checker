@@ -18,6 +18,7 @@ def get_block_height_and_timestamp(rpc_client: Optional[TellorRPCClient] = None)
     else:
         raise Exception("RPC client is required")
 
+
 # gets the average block time by sampling twice with a 20s sleep
 def get_average_block_time(rpc_client: TellorRPCClient):
     sleep_duration = 20
@@ -54,6 +55,7 @@ def get_average_block_time(rpc_client: TellorRPCClient):
 
     return avg_block_time, time_diff, block_diff
 
+
 def sleep_box(duration=20):
     # Funniest clean jokes of all time
     jokes = [
@@ -62,7 +64,10 @@ def sleep_box(duration=20):
         ("Why did the scarecrow win an award?", "He was outstanding in his field!"),
         ("What do you call a bear with no teeth?", "A gummy bear!"),
         ("Why don't eggs tell jokes?", "They'd crack each other up!"),
-        ("What's the best thing about Switzerland?", "I don't know, but the flag is a big plus!"),
+        (
+            "What's the best thing about Switzerland?",
+            "I don't know, but the flag is a big plus!",
+        ),
         ("Why did the math book look so sad?", "Because it was full of problems!"),
         ("What do you call a sleeping bull?", "A bulldozer!"),
         ("How do you organize a space party?", "You planet!"),
@@ -72,7 +77,7 @@ def sleep_box(duration=20):
         ("What did the ocean say to the beach?", "Nothing, it just waved!"),
         ("Why did the cookie go to the doctor?", "Because it felt crumbly!"),
         ("What's orange and sounds like a parrot?", "A carrot!"),
-        ("Why don't programmers like nature?", "It has too many bugs!")
+        ("Why don't programmers like nature?", "It has too many bugs!"),
     ]
 
     current_joke_lines = 0  # Track how many lines the current joke uses

@@ -5,8 +5,8 @@ from termcolor import colored
 
 def print_section_header(title):
     """Print a beautifully formatted section header with a distinct style"""
-    print("\n" * 2 + colored("═" * 80, 'green', attrs=['bold']))
-    print(colored(f"  {title}", 'green', attrs=['bold', 'dark']))
+    print("\n" * 2 + colored("═" * 80, "green", attrs=["bold"]))
+    print(colored(f"  {title}", "green", attrs=["bold", "dark"]))
     print("\n")
 
 
@@ -23,7 +23,7 @@ def print_info_box(title, data_dict, separators=None):
     for i, (key, value) in enumerate(data_dict.items()):
         # Split the line into two columns: label (left) and value (right)
         # Left align label and value in their respective columns
-        formatted_line = f" {key:<{label_width-1}}{str(value):<{value_width}} "
+        formatted_line = f" {key:<{label_width - 1}}{str(value):<{value_width}} "
         print("│" + formatted_line + "│")
 
         # Add separator line if specified
@@ -39,8 +39,8 @@ def print_table(title, headers, rows):
 
     def strip_ansi(text):
         """Remove ANSI escape codes from text for width calculation"""
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        return ansi_escape.sub('', str(text))
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        return ansi_escape.sub("", str(text))
 
     # Calculate column widths with proper padding
     col_widths = []
@@ -61,7 +61,7 @@ def print_table(title, headers, rows):
     # Column headers
     header_line = "│"
     for i, header in enumerate(headers):
-        header_line += f" {header:<{col_widths[i]-2}} "
+        header_line += f" {header:<{col_widths[i] - 2}} "
         if i < len(headers) - 1:
             header_line += "│"
     header_line += "│"
@@ -161,7 +161,7 @@ def print_box_and_whisker(stakes, title="VALIDATOR DISTRIBUTION"):
 
     # Median line
     if q2_pos < len(visual):
-        visual[q2_pos] = colored("│", 'green', attrs=['bold'])
+        visual[q2_pos] = colored("│", "green", attrs=["bold"])
 
     # Whisker ends
     if min_pos < len(visual):
@@ -176,9 +176,9 @@ def print_box_and_whisker(stakes, title="VALIDATOR DISTRIBUTION"):
     visible_chars = 0
     i = 0
     while i < len(visual_content):
-        if visual_content[i:i+2] == '\x1b[':  # ANSI escape sequence start
+        if visual_content[i : i + 2] == "\x1b[":  # ANSI escape sequence start
             # Skip to the end of the ANSI sequence
-            while i < len(visual_content) and visual_content[i] != 'm':
+            while i < len(visual_content) and visual_content[i] != "m":
                 i += 1
             i += 1  # Skip the 'm'
         else:
@@ -201,9 +201,13 @@ def print_box_and_whisker(stakes, title="VALIDATOR DISTRIBUTION"):
     # Add scale numbers at regular intervals
     num_intervals = 7  # Reduced to prevent overcrowding
     for i in range(num_intervals + 1):
-        pos_on_scale = int(i * (chart_width - 1) / num_intervals)  # Use chart_width - 1 for proper distribution
+        pos_on_scale = int(
+            i * (chart_width - 1) / num_intervals
+        )  # Use chart_width - 1 for proper distribution
 
-        value = min_val + (i / num_intervals) * total_range  # Calculate value based on interval, not position
+        value = (
+            min_val + (i / num_intervals) * total_range
+        )  # Calculate value based on interval, not position
         value_str = f"{value:.0f}" if value >= 10 else f"{value:.1f}"
 
         # Special handling for the last number to prevent cutoff
@@ -245,20 +249,14 @@ def print_box_and_whisker(stakes, title="VALIDATOR DISTRIBUTION"):
     # Statistics
     # Left column: Min, Median, Max
     # Right column: Q1, Q3
-    left_col = [
-        "Min: ",
-        "Q1: ",
-        "Median: ",
-        "Q3: ",
-        "Max: "
-    ]
+    left_col = ["Min: ", "Q1: ", "Median: ", "Q3: ", "Max: "]
 
     right_col = [
         f"{min_val:.1f} TRB",
         f"{q1:.1f} TRB",
         f"{q2:.1f} TRB",
         f"{q3:.1f} TRB",
-        f"{max_val:.1f} TRB"
+        f"{max_val:.1f} TRB",
     ]
 
     for left_text, right_text in zip(left_col, right_col):
@@ -360,9 +358,9 @@ def print_distribution_chart(stakes, title="VALIDATOR COUNTS BY POWER"):
         # Format based on magnitude
         if end_val >= 1000:
             if start_val >= 1000:
-                bin_labels.append(f"{start_val/1000:.0f}k-{end_val/1000:.0f}k TRB")
+                bin_labels.append(f"{start_val / 1000:.0f}k-{end_val / 1000:.0f}k TRB")
             else:
-                bin_labels.append(f"{start_val:.0f}-{end_val/1000:.1f}k TRB")
+                bin_labels.append(f"{start_val:.0f}-{end_val / 1000:.1f}k TRB")
         elif end_val >= 100:
             bin_labels.append(f"{start_val:.0f}-{end_val:.0f} TRB")
         elif end_val >= 10:
@@ -375,7 +373,9 @@ def print_distribution_chart(stakes, title="VALIDATOR COUNTS BY POWER"):
 
     # Calculate the maximum width for the chart (leave space for labels)
     max_label_width = max(len(label) for label in bin_labels)
-    chart_width = 78 - max_label_width - 8  # Total width - label width - padding and count
+    chart_width = (
+        78 - max_label_width - 8
+    )  # Total width - label width - padding and count
 
     print("┌" + "─" * 78 + "┐")
     print("│" + title.center(78) + "│")
@@ -383,7 +383,7 @@ def print_distribution_chart(stakes, title="VALIDATOR COUNTS BY POWER"):
 
     for _i, (label, count) in enumerate(zip(bin_labels, bin_counts)):
         # Create green stars - one star per validator
-        stars = colored("★" * count, 'green')
+        stars = colored("★" * count, "green")
 
         # Calculate padding manually since colored text messes up string formatting
         stars_padding = " " * (chart_width - count)

@@ -12,15 +12,15 @@ def extract_fee_from_tx_result(tx_result: Dict[str, Any]) -> int:
     Returns fee amount in loya.
     """
     try:
-        events = tx_result.get('events', [])
+        events = tx_result.get("events", [])
         for event in events:
-            if event.get('type') == 'tx':
-                attributes = event.get('attributes', [])
+            if event.get("type") == "tx":
+                attributes = event.get("attributes", [])
                 for attr in attributes:
-                    if attr.get('key') == 'fee':
-                        fee_str = attr.get('value', '0')
+                    if attr.get("key") == "fee":
+                        fee_str = attr.get("value", "0")
                         # Remove 'loya' suffix and convert to int
-                        if fee_str.endswith('loya'):
+                        if fee_str.endswith("loya"):
                             fee_str = fee_str[:-4]  # Remove 'loya' suffix
                         return int(fee_str) if fee_str.isdigit() else 0
         return 0
@@ -40,19 +40,20 @@ def parse_submit_value_transaction(tx_base64: str) -> Optional[Dict[str, Any]]:
         tx_bytes = base64.b64decode(tx_base64)
 
         # Convert to string for pattern matching
-        tx_str = tx_bytes.decode('latin-1', errors='ignore')
+        tx_str = tx_bytes.decode("latin-1", errors="ignore")
 
         # Find the reporter address (starts with "tellor1")
         import re
-        tellor_pattern = r'tellor1[a-z0-9]{38}'
+
+        tellor_pattern = r"tellor1[a-z0-9]{38}"
         reporter_matches = re.findall(tellor_pattern, tx_str)
 
         if reporter_matches:
             reporter = reporter_matches[0]
             return {
-                'reporter': reporter,
-                'tx_type': 'MsgSubmitValue',
-                'raw_tx': tx_base64
+                "reporter": reporter,
+                "tx_type": "MsgSubmitValue",
+                "raw_tx": tx_base64,
             }
         else:
             return None
@@ -83,17 +84,17 @@ def query_recent_reports(rpc_client: Optional[TellorRPCClient] = None, limit=10)
             if rpc_client is not None:
                 # Query block directly and look for transactions
                 block_response = rpc_client.get_block_with_txs(height)
-                block_data = block_response.get('result', {}).get('block', {})
+                block_data = block_response.get("result", {}).get("block", {})
 
                 # Get block results for gas and fee information
                 block_results_response = rpc_client.get_block_results(height)
-                block_results = block_results_response.get('result', {})
+                block_results = block_results_response.get("result", {})
 
                 block_txs = []
 
                 # Extract transactions from block
-                txs = block_data.get('data', {}).get('txs', [])
-                txs_results = block_results.get('txs_results', [])
+                txs = block_data.get("data", {}).get("txs", [])
+                txs_results = block_results.get("txs_results", [])
 
                 for i, tx_encoded in enumerate(txs):
                     try:
@@ -102,21 +103,23 @@ def query_recent_reports(rpc_client: Optional[TellorRPCClient] = None, limit=10)
                         if parsed_tx:
                             # Get gas and fee info from block results
                             tx_result = txs_results[i] if i < len(txs_results) else {}
-                            gas_wanted = tx_result.get('gas_wanted', '0')
-                            gas_used = tx_result.get('gas_used', '0')
+                            gas_wanted = tx_result.get("gas_wanted", "0")
+                            gas_used = tx_result.get("gas_used", "0")
 
                             # Extract fee information from block results
                             fee_amount = extract_fee_from_tx_result(tx_result)
 
-                            block_txs.append({
-                                'height': height,
-                                'tx': tx_encoded,
-                                'reporter': parsed_tx['reporter'],
-                                'gas_wanted': int(gas_wanted) if gas_wanted else 0,
-                                'gas_used': int(gas_used) if gas_used else 0,
-                                'fee_amount': fee_amount,
-                                'is_submit_value': True
-                            })
+                            block_txs.append(
+                                {
+                                    "height": height,
+                                    "tx": tx_encoded,
+                                    "reporter": parsed_tx["reporter"],
+                                    "gas_wanted": int(gas_wanted) if gas_wanted else 0,
+                                    "gas_used": int(gas_used) if gas_used else 0,
+                                    "fee_amount": fee_amount,
+                                    "is_submit_value": True,
+                                }
+                            )
                     except Exception as e:
                         print(f"Error decoding transaction: {e}")
                         continue
@@ -128,7 +131,9 @@ def query_recent_reports(rpc_client: Optional[TellorRPCClient] = None, limit=10)
             if block_txs:
                 # Take only 2 transactions per block
                 txs_to_add = block_txs[:2]
-                print(f"Found {len(block_txs)} reports at height {height}, sampling {len(txs_to_add)}")
+                print(
+                    f"Found {len(block_txs)} reports at height {height}, sampling {len(txs_to_add)}"
+                )
                 all_txs.extend(txs_to_add)
 
             height += 1
@@ -142,66 +147,63 @@ def query_recent_reports(rpc_client: Optional[TellorRPCClient] = None, limit=10)
         print(f"\nSampling {len(all_txs)} oracle transactions")
         # Return in the same format as the original function
         return {
-            'total_count': str(len(all_txs)),
-            'count': str(min(limit, len(all_txs))),
-            'txs': all_txs[:limit]
+            "total_count": str(len(all_txs)),
+            "count": str(min(limit, len(all_txs))),
+            "txs": all_txs[:limit],
         }
     else:
         print("No oracle transactions found in recent blocks")
-        return {
-            'total_count': '0',
-            'count': '0',
-            'txs': []
-        }
+        return {"total_count": "0", "count": "0", "txs": []}
+
 
 # analyzes the submit value transactions and returns a dict with the num txs, gas usage, and fee info
 def analyze_submit_value_transactions(tx_response, rpc_client=None, config=None):
-    if not tx_response or not tx_response.get('txs'):
+    if not tx_response or not tx_response.get("txs"):
         return {
-            'tx_count': 0,
-            'total_gas_wanted': 0,
-            'total_gas_used': 0,
-            'total_fees_loya': 0,
-            'avg_gas_wanted': 0,
-            'avg_gas_used': 0,
-            'avg_fee_loya': 0,
-            'avg_min_cost': 0,
-            'gas_efficiency_pct': 0,
-            'reporters': []
+            "tx_count": 0,
+            "total_gas_wanted": 0,
+            "total_gas_used": 0,
+            "total_fees_loya": 0,
+            "avg_gas_wanted": 0,
+            "avg_gas_used": 0,
+            "avg_fee_loya": 0,
+            "avg_min_cost": 0,
+            "gas_efficiency_pct": 0,
+            "reporters": [],
         }
 
-    txs = tx_response.get('txs', [])
+    txs = tx_response.get("txs", [])
     submit_value_txs = []
 
     # Filter for MsgSubmitValue transactions
     for tx in txs:
         # Handle both old format (parsed tx) and new format (base64 string)
-        if isinstance(tx.get('tx'), str):
+        if isinstance(tx.get("tx"), str):
             # New format: base64 encoded transaction
             # For now, assume all transactions are submit value transactions
             # In a full implementation, we'd decode and parse the transaction
-            if tx.get('is_submit_value', False):
+            if tx.get("is_submit_value", False):
                 submit_value_txs.append(tx)
         else:
             # Old format: parsed transaction object
-            messages = tx.get('tx', {}).get('body', {}).get('messages', [])
+            messages = tx.get("tx", {}).get("body", {}).get("messages", [])
             for msg in messages:
-                if msg.get('@type') == '/layer.oracle.MsgSubmitValue':
+                if msg.get("@type") == "/layer.oracle.MsgSubmitValue":
                     submit_value_txs.append(tx)
                     break
 
     if not submit_value_txs:
         return {
-            'tx_count': 0,
-            'total_gas_wanted': 0,
-            'total_gas_used': 0,
-            'total_fees_loya': 0,
-            'avg_gas_wanted': 0,
-            'avg_gas_used': 0,
-            'avg_fee_loya': 0,
-            'avg_min_cost': 0,
-            'gas_efficiency_pct': 0,
-            'reporters': []
+            "tx_count": 0,
+            "total_gas_wanted": 0,
+            "total_gas_used": 0,
+            "total_fees_loya": 0,
+            "avg_gas_wanted": 0,
+            "avg_gas_used": 0,
+            "avg_fee_loya": 0,
+            "avg_min_cost": 0,
+            "gas_efficiency_pct": 0,
+            "reporters": [],
         }
 
     # Analyze each transaction
@@ -216,40 +218,40 @@ def analyze_submit_value_transactions(tx_response, rpc_client=None, config=None)
     if min_gas_price is None:
         print("Warning: Could not get minimum gas price")
         return {
-            'tx_count': 0,
-            'total_gas_wanted': 0,
-            'total_gas_used': 0,
-            'total_fees_loya': 0,
-            'avg_gas_wanted': 0,
-            'avg_gas_used': 0,
-            'avg_fee_loya': 0,
-            'avg_min_cost': 0,
-            'gas_efficiency_pct': 0,
-            'reporters': []
+            "tx_count": 0,
+            "total_gas_wanted": 0,
+            "total_gas_used": 0,
+            "total_fees_loya": 0,
+            "avg_gas_wanted": 0,
+            "avg_gas_used": 0,
+            "avg_fee_loya": 0,
+            "avg_min_cost": 0,
+            "gas_efficiency_pct": 0,
+            "reporters": [],
         }
 
     for tx in submit_value_txs:
         # Handle both old format (parsed tx) and new format (base64 string)
-        if isinstance(tx.get('tx'), str):
+        if isinstance(tx.get("tx"), str):
             # New format: base64 encoded transaction with parsed data
-            gas_wanted = tx.get('gas_wanted', 0)
-            gas_used = tx.get('gas_used', 0)
-            fee_amount = tx.get('fee_amount', 0)
-            reporter = tx.get('reporter', 'unknown')
+            gas_wanted = tx.get("gas_wanted", 0)
+            gas_used = tx.get("gas_used", 0)
+            fee_amount = tx.get("fee_amount", 0)
+            reporter = tx.get("reporter", "unknown")
         else:
             # Old format: parsed transaction object
-            gas_wanted = int(tx.get('gas_wanted', 0))
-            gas_used = int(tx.get('gas_used', 0))
+            gas_wanted = int(tx.get("gas_wanted", 0))
+            gas_used = int(tx.get("gas_used", 0))
 
             # Extract fee info
             fee_amount = 0
-            auth_info = tx.get('tx', {}).get('auth_info', {})
-            fee_info = auth_info.get('fee', {})
-            amounts = fee_info.get('amount', [])
+            auth_info = tx.get("tx", {}).get("auth_info", {})
+            fee_info = auth_info.get("fee", {})
+            amounts = fee_info.get("amount", [])
 
             for amount in amounts:
-                if amount.get('denom') == 'loya':
-                    fee_amount += int(amount.get('amount', 0))
+                if amount.get("denom") == "loya":
+                    fee_amount += int(amount.get("amount", 0))
 
         total_gas_wanted += gas_wanted
         total_gas_used += gas_used
@@ -260,35 +262,43 @@ def analyze_submit_value_transactions(tx_response, rpc_client=None, config=None)
         total_min_cost += min_cost
 
         # Extract reporter info
-        if isinstance(tx.get('tx'), str):
+        if isinstance(tx.get("tx"), str):
             # New format: base64 encoded transaction with parsed data
-            reporters.append({
-                'address': reporter,
-                'gas_wanted': gas_wanted,
-                'gas_used': gas_used,
-                'min_cost': min_cost,
-                'fee_loya': fee_amount,
-                'tx_hash': tx.get('txhash', ''),
-                'height': tx.get('height', ''),
-                'efficiency_pct': (gas_used / gas_wanted * 100) if gas_wanted > 0 else 0
-            })
+            reporters.append(
+                {
+                    "address": reporter,
+                    "gas_wanted": gas_wanted,
+                    "gas_used": gas_used,
+                    "min_cost": min_cost,
+                    "fee_loya": fee_amount,
+                    "tx_hash": tx.get("txhash", ""),
+                    "height": tx.get("height", ""),
+                    "efficiency_pct": (gas_used / gas_wanted * 100)
+                    if gas_wanted > 0
+                    else 0,
+                }
+            )
         else:
             # Old format: parsed transaction object
-            messages = tx.get('tx', {}).get('body', {}).get('messages', [])
+            messages = tx.get("tx", {}).get("body", {}).get("messages", [])
             for msg in messages:
-                if msg.get('@type') == '/layer.oracle.MsgSubmitValue':
-                    reporter = msg.get('creator', '')
+                if msg.get("@type") == "/layer.oracle.MsgSubmitValue":
+                    reporter = msg.get("creator", "")
                     if reporter:
-                        reporters.append({
-                            'address': reporter,
-                            'gas_wanted': gas_wanted,
-                            'gas_used': gas_used,
-                            'min_cost': min_cost,
-                            'fee_loya': fee_amount,
-                            'tx_hash': tx.get('txhash', ''),
-                            'height': tx.get('height', ''),
-                            'efficiency_pct': (gas_used / gas_wanted * 100) if gas_wanted > 0 else 0
-                        })
+                        reporters.append(
+                            {
+                                "address": reporter,
+                                "gas_wanted": gas_wanted,
+                                "gas_used": gas_used,
+                                "min_cost": min_cost,
+                                "fee_loya": fee_amount,
+                                "tx_hash": tx.get("txhash", ""),
+                                "height": tx.get("height", ""),
+                                "efficiency_pct": (gas_used / gas_wanted * 100)
+                                if gas_wanted > 0
+                                else 0,
+                            }
+                        )
                     break
 
     tx_count = len(submit_value_txs)
@@ -300,18 +310,21 @@ def analyze_submit_value_transactions(tx_response, rpc_client=None, config=None)
     avg_min_cost = total_min_cost / tx_count if tx_count > 0 else 0
 
     return {
-        'tx_count': tx_count,
-        'total_gas_wanted': total_gas_wanted,
-        'total_gas_used': total_gas_used,
-        'total_fees_loya': total_fees_loya,
-        'avg_gas_wanted': avg_gas_wanted,
-        'avg_gas_used': avg_gas_used,
-        'avg_fee_loya': avg_fee_loya,
-        'avg_min_cost': avg_min_cost,
-        'reporters': reporters
+        "tx_count": tx_count,
+        "total_gas_wanted": total_gas_wanted,
+        "total_gas_used": total_gas_used,
+        "total_fees_loya": total_fees_loya,
+        "avg_gas_wanted": avg_gas_wanted,
+        "avg_gas_used": avg_gas_used,
+        "avg_fee_loya": avg_fee_loya,
+        "avg_min_cost": avg_min_cost,
+        "reporters": reporters,
     }
 
-def query_mint_events(start_height=None, end_height=None, rpc_endpoint=None, rpc_client=None):
+
+def query_mint_events(
+    start_height=None, end_height=None, rpc_endpoint=None, rpc_client=None
+):
     """
     Query mint_coins events from recent blocks using CometBFT RPC
     Returns dict with total minted amount and event details
@@ -335,47 +348,54 @@ def query_mint_events(start_height=None, end_height=None, rpc_endpoint=None, rpc
             try:
                 # Query block results using RPC client
                 response = rpc_client.get_block_results(height)
-                block_results = response.get('result', {})
-                finalize_block_events = block_results.get('finalize_block_events', [])
+                block_results = response.get("result", {})
+                finalize_block_events = block_results.get("finalize_block_events", [])
 
                 for event in finalize_block_events:
-                    if event.get('type') == 'mint_coins':
+                    if event.get("type") == "mint_coins":
                         # Extract amount from attributes
-                        attributes = event.get('attributes', [])
+                        attributes = event.get("attributes", [])
                         amount_str = None
                         destination = None
 
                         for attr in attributes:
-                            if attr.get('key') == 'amount':
-                                amount_str = attr.get('value', '')
-                            elif attr.get('key') == 'destination':
-                                destination = attr.get('value', '')
+                            if attr.get("key") == "amount":
+                                amount_str = attr.get("value", "")
+                            elif attr.get("key") == "destination":
+                                destination = attr.get("value", "")
 
-                        if amount_str and destination == 'mint':  # Changed from 'oracle' to 'mint'
+                        if (
+                            amount_str and destination == "mint"
+                        ):  # Changed from 'oracle' to 'mint'
                             # Parse amount (format: "123456loya")
-                            if amount_str.endswith('loya'):
+                            if amount_str.endswith("loya"):
                                 amount = int(amount_str[:-4])  # Remove 'loya' suffix
                                 total_minted += amount
-                                mint_events.append({
-                                    'height': height,
-                                    'amount': amount,
-                                    'amount_str': amount_str,
-                                    'destination': destination
-                                })
-                                print(f"Found mint event at height {height}: {amount_str}")
+                                mint_events.append(
+                                    {
+                                        "height": height,
+                                        "amount": amount,
+                                        "amount_str": amount_str,
+                                        "destination": destination,
+                                    }
+                                )
+                                print(
+                                    f"Found mint event at height {height}: {amount_str}"
+                                )
 
             except Exception as e:
                 print(f"Error querying mint events at height {height}: {e}")
                 continue
 
         return {
-            'total_minted': total_minted,
-            'events': mint_events,
-            'event_count': len(mint_events)
+            "total_minted": total_minted,
+            "events": mint_events,
+            "event_count": len(mint_events),
         }
 
     else:
         raise Exception("RPC client is required - layerd binary fallback is disabled")
+
 
 def print_submit_value_analysis(tx_response, rpc_client=None, config=None):
     """
@@ -388,6 +408,5 @@ def print_submit_value_analysis(tx_response, rpc_client=None, config=None):
     if min_gas_price is None:
         print("Warning: Could not get minimum gas price")
         min_gas_price = 0
-
 
     return analysis

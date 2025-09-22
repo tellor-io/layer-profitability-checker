@@ -24,7 +24,9 @@ def load_query_datas(config_path: str = "config.yaml") -> Dict[str, str]:
         if "query_datas" in config:
             return config["query_datas"]
         else:
-            print(f"Warning: No 'query_datas' found in {config_path}, using empty config")
+            print(
+                f"Warning: No 'query_datas' found in {config_path}, using empty config"
+            )
             return {}
     except FileNotFoundError:
         print(f"Warning: Config file {config_path} not found, using empty config")
@@ -34,7 +36,9 @@ def load_query_datas(config_path: str = "config.yaml") -> Dict[str, str]:
         return {}
 
 
-def get_current_tip(rpc_client=None, config=None, query_data: str = None) -> Optional[float]:
+def get_current_tip(
+    rpc_client=None, config=None, query_data: str = None
+) -> Optional[float]:
     """
     Query the current tip for a specific query data using REST API.
 
@@ -50,27 +54,31 @@ def get_current_tip(rpc_client=None, config=None, query_data: str = None) -> Opt
         if rpc_client is not None and query_data:
             # Get the REST endpoint from RPC client
             rest_endpoint = rpc_client.rpc_endpoint
-            if rest_endpoint.endswith('/rpc'):
-                rest_endpoint = rest_endpoint.replace('/rpc', '')
+            if rest_endpoint.endswith("/rpc"):
+                rest_endpoint = rest_endpoint.replace("/rpc", "")
 
             # Query current tip via REST API
             url = f"{rest_endpoint}/tellor-io/layer/oracle/get_current_tip/{query_data}"
-            result = subprocess.run([
-                'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
-            ], capture_output=True, text=True, check=True, timeout=10)
+            result = subprocess.run(
+                ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
 
             # Parse JSON response
             response = json.loads(result.stdout)
 
             # Extract tip amount from response
-            if 'tips' in response:
-                tip_amount = float(response['tips'])
-            elif 'tip' in response:
-                tip_amount = float(response['tip'])
-            elif 'amount' in response:
-                tip_amount = float(response['amount'])
-            elif 'value' in response:
-                tip_amount = float(response['value'])
+            if "tips" in response:
+                tip_amount = float(response["tips"])
+            elif "tip" in response:
+                tip_amount = float(response["tip"])
+            elif "amount" in response:
+                tip_amount = float(response["amount"])
+            elif "value" in response:
+                tip_amount = float(response["value"])
             else:
                 # If the response is just a number
                 tip_amount = float(response)
@@ -114,8 +122,8 @@ def get_all_current_tips(rpc_client=None, config=None) -> Dict[str, Optional[flo
     tips = {}
 
     # Load queryDatas from config
-    if config and 'query_datas' in config:
-        query_data_config = config['query_datas']
+    if config and "query_datas" in config:
+        query_data_config = config["query_datas"]
     else:
         query_data_config = load_query_datas()
 
@@ -132,7 +140,9 @@ def get_all_current_tips(rpc_client=None, config=None) -> Dict[str, Optional[flo
     return tips
 
 
-def format_tips_for_display(tips: Dict[str, Optional[float]]) -> Tuple[List[str], List[List[str]]]:
+def format_tips_for_display(
+    tips: Dict[str, Optional[float]],
+) -> Tuple[List[str], List[List[str]]]:
     """
     Format tips data for display in a table.
 
@@ -146,7 +156,9 @@ def format_tips_for_display(tips: Dict[str, Optional[float]]) -> Tuple[List[str]
     rows = []
 
     # Sort by tip amount (descending), with None values at the end
-    sorted_tips = sorted(tips.items(), key=lambda x: (x[1] is None, x[1] or 0), reverse=True)
+    sorted_tips = sorted(
+        tips.items(), key=lambda x: (x[1] is None, x[1] or 0), reverse=True
+    )
 
     for feed_name, tip in sorted_tips:
         if tip is not None and tip > 0:
@@ -178,26 +190,30 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
             return None
 
         rest_endpoint = rpc_client.rpc_endpoint
-        if rest_endpoint.endswith('/rpc'):
-            rest_endpoint = rest_endpoint.replace('/rpc', '')
+        if rest_endpoint.endswith("/rpc"):
+            rest_endpoint = rest_endpoint.replace("/rpc", "")
         url = f"{rest_endpoint}/tellor-io/layer/oracle/get_tip_total"
 
-        result = subprocess.run([
-            'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
-        ], capture_output=True, text=True, check=True, timeout=10)
+        result = subprocess.run(
+            ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
 
         # Parse JSON response
         response = json.loads(result.stdout)
 
         # Extract total tips amount from response
-        if 'total_tips' in response:
-            tips_amount = float(response['total_tips'])
-        elif 'tips' in response:
-            tips_amount = float(response['tips'])
-        elif 'amount' in response:
-            tips_amount = float(response['amount'])
-        elif 'value' in response:
-            tips_amount = float(response['value'])
+        if "total_tips" in response:
+            tips_amount = float(response["total_tips"])
+        elif "tips" in response:
+            tips_amount = float(response["tips"])
+        elif "amount" in response:
+            tips_amount = float(response["amount"])
+        elif "value" in response:
+            tips_amount = float(response["value"])
         else:
             # If the response is just a number
             tips_amount = float(response)
@@ -219,7 +235,9 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
         return None
 
 
-def get_available_tips(rpc_client=None, config=None, selector_address: str = None) -> Optional[float]:
+def get_available_tips(
+    rpc_client=None, config=None, selector_address: str = None
+) -> Optional[float]:
     """
     Query the available tips for a specific selector address using REST API.
 
@@ -235,27 +253,31 @@ def get_available_tips(rpc_client=None, config=None, selector_address: str = Non
         if rpc_client is not None and selector_address:
             # Get the REST endpoint from RPC client
             rest_endpoint = rpc_client.rpc_endpoint
-            if rest_endpoint.endswith('/rpc'):
-                rest_endpoint = rest_endpoint.replace('/rpc', '')
+            if rest_endpoint.endswith("/rpc"):
+                rest_endpoint = rest_endpoint.replace("/rpc", "")
 
             # Query available tips via REST API
             url = f"{rest_endpoint}/tellor-io/layer/reporter/available-tips/{selector_address}"
-            result = subprocess.run([
-                'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
-            ], capture_output=True, text=True, check=True, timeout=10)
+            result = subprocess.run(
+                ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
 
             # Parse JSON response
             response = json.loads(result.stdout)
 
             # Extract available tips amount from response
-            if 'available_tips' in response:
-                tips_amount_str = response['available_tips']
-            elif 'tips' in response:
-                tips_amount_str = response['tips']
-            elif 'amount' in response:
-                tips_amount_str = response['amount']
-            elif 'value' in response:
-                tips_amount_str = response['value']
+            if "available_tips" in response:
+                tips_amount_str = response["available_tips"]
+            elif "tips" in response:
+                tips_amount_str = response["tips"]
+            elif "amount" in response:
+                tips_amount_str = response["amount"]
+            elif "value" in response:
+                tips_amount_str = response["value"]
             else:
                 # If the response is just a number
                 tips_amount_str = str(response)
@@ -305,7 +327,7 @@ def get_tipping_summary(tips: Dict[str, Optional[float]]) -> Dict[str, str]:
             "Total Tip Amount": "0.00000 TRB",
             "Average Tip": "0.00000 TRB",
             "Highest Tip": "0.00000 TRB",
-            "Lowest Tip": "0.00000 TRB"
+            "Lowest Tip": "0.00000 TRB",
         }
 
     total_tipped = len(valid_tips)
@@ -319,7 +341,7 @@ def get_tipping_summary(tips: Dict[str, Optional[float]]) -> Dict[str, str]:
         "Total Tip Amount": f"{total_amount:.5f} TRB",
         "Average Tip": f"{avg_tip:.5f} TRB",
         "Highest Tip": f"{max_tip:.5f} TRB",
-        "Lowest Tip": f"{min_tip:.5f} TRB"
+        "Lowest Tip": f"{min_tip:.5f} TRB",
     }
 
 
@@ -346,22 +368,28 @@ def get_all_denom_owners(rest_endpoint: str) -> List[str]:
             url += f"?pagination.key={next_key}"
 
         try:
-            result = subprocess.run([
-                'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
-            ], capture_output=True, text=True, check=True, timeout=30)
+            result = subprocess.run(
+                ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=30,
+            )
 
             response = json.loads(result.stdout)
 
             # Extract addresses from this page
-            denom_owners = response.get('denom_owners', [])
-            page_addresses = [owner['address'] for owner in denom_owners]
+            denom_owners = response.get("denom_owners", [])
+            page_addresses = [owner["address"] for owner in denom_owners]
             all_addresses.extend(page_addresses)
 
-            print(f"  Page {page}: {len(page_addresses)} addresses (total: {len(all_addresses)})")
+            print(
+                f"  Page {page}: {len(page_addresses)} addresses (total: {len(all_addresses)})"
+            )
 
             # Check if there are more pages
-            pagination = response.get('pagination', {})
-            next_key = pagination.get('next_key')
+            pagination = response.get("pagination", {})
+            next_key = pagination.get("next_key")
 
             if not next_key:
                 break
@@ -395,23 +423,27 @@ def get_user_tip_total(rest_endpoint: str, address: str) -> Optional[float]:
     """
     try:
         url = f"{rest_endpoint}/tellor-io/layer/oracle/get_user_tip_total/{address}"
-        result = subprocess.run([
-            'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
-        ], capture_output=True, text=True, check=True, timeout=10)
+        result = subprocess.run(
+            ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
 
         response = json.loads(result.stdout)
 
         # Extract tip total from response
-        if 'total_tips' in response:
-            tip_amount = float(response['total_tips'])
-        elif 'tip_total' in response:
-            tip_amount = float(response['tip_total'])
-        elif 'tips' in response:
-            tip_amount = float(response['tips'])
-        elif 'amount' in response:
-            tip_amount = float(response['amount'])
-        elif 'value' in response:
-            tip_amount = float(response['value'])
+        if "total_tips" in response:
+            tip_amount = float(response["total_tips"])
+        elif "tip_total" in response:
+            tip_amount = float(response["tip_total"])
+        elif "tips" in response:
+            tip_amount = float(response["tips"])
+        elif "amount" in response:
+            tip_amount = float(response["amount"])
+        elif "value" in response:
+            tip_amount = float(response["value"])
         else:
             # If the response is just a number
             tip_amount = float(response)
@@ -461,7 +493,9 @@ def get_all_user_tip_totals(rest_endpoint: str) -> List[Tuple[str, float]]:
     return tip_totals
 
 
-def format_user_tip_totals_for_display(tip_totals: List[Tuple[str, float]]) -> Tuple[List[str], List[List[str]]]:
+def format_user_tip_totals_for_display(
+    tip_totals: List[Tuple[str, float]],
+) -> Tuple[List[str], List[List[str]]]:
     """
     Format user tip totals for display in a table.
 

@@ -40,21 +40,58 @@ from .scenarios import format_targets_for_display_with_apr, run_scenarios_analys
 
 
 def main():
-
     # Welcome message with ASCII art night sky - green and bold
-    print("\n" + colored("┌" + "═" * 78 + "┐", 'green', attrs=['bold']))
-    print(colored("║" + "★" * 78 + "║", 'green', attrs=['bold']))
-    print(colored("║" + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░" + "║", 'green', attrs=['bold']))
-    print(colored("║" + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█" + "║", 'green', attrs=['bold']))
-    print(colored("║" + " " * 78 + "║", 'green', attrs=['bold']))
-    print(colored("║" + " " * 78 + "║", 'green', attrs=['bold']))
-    print(colored("║" + "TELLOR LAYER PROFITABILITY CHECKER".center(78) + "║", 'green', attrs=['bold']))
-    print(colored("║" + " " * 78 + "║", 'green', attrs=['bold']))
-    print(colored("║" + " " * 78 + "║", 'green', attrs=['bold']))
-    print(colored("║" + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█" + "║", 'green', attrs=['bold']))
-    print(colored("║" + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░" + "║", 'green', attrs=['bold']))
-    print(colored("║" + "★" * 78 + "║", 'green', attrs=['bold']))
-    print(colored("└" + "═" * 78 + "┘", 'green', attrs=['bold']))
+    print("\n" + colored("┌" + "═" * 78 + "┐", "green", attrs=["bold"]))
+    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║"
+            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(
+        colored(
+            "║"
+            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║" + "TELLOR LAYER PROFITABILITY CHECKER".center(78) + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║"
+            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(
+        colored(
+            "║"
+            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
+    print(colored("└" + "═" * 78 + "┘", "green", attrs=["bold"]))
 
     # load configuration
     with open("config.yaml") as f:
@@ -66,19 +103,29 @@ def main():
     rpc_client = TellorRPCClient(rpc_endpoint)
     abci_client = TellorABCIClient(rpc_client)
 
-
     # get chain id
     try:
         chain_id = rpc_client.get_chain_id()
         print("\n")
-        print(colored(f"  Chain ID: {chain_id}", 'green', attrs=['bold']))
+        print(colored(f"  Chain ID: {chain_id}", "green", attrs=["bold"]))
     except Exception as e:
         print(f"Error getting chain ID: {e}")
         chain_id = "unknown"
 
     # get total stake
     print_section_header("STAKING DISTRIBUTION")
-    total_tokens_active, total_tokens_jailed, total_tokens_unbonding, total_tokens_unbonded, active_count, jailed_count, unbonding_count, unbonded_count, median_stake, active_validator_stakes = get_total_stake(rpc_client, abci_client)
+    (
+        total_tokens_active,
+        total_tokens_jailed,
+        total_tokens_unbonding,
+        total_tokens_unbonded,
+        active_count,
+        jailed_count,
+        unbonding_count,
+        unbonded_count,
+        median_stake,
+        active_validator_stakes,
+    ) = get_total_stake(rpc_client, abci_client)
     avg_stake = total_tokens_active / active_count
 
     # Display average and median stakes first
@@ -99,7 +146,7 @@ def main():
         ["Active", f"{active_count:,}", f"{total_tokens_active:,.1f}"],
         ["Unbonding", f"{unbonding_count:,}", f"{total_tokens_unbonding:,.1f}"],
         ["Unbonded", f"{unbonded_count:,}", f"{total_tokens_unbonded:,.1f}"],
-        ["Jailed", f"{jailed_count:,}", f"{total_tokens_jailed:,.1f}"]
+        ["Jailed", f"{jailed_count:,}", f"{total_tokens_jailed:,.1f}"],
     ]
     print_table("validator status", validator_headers, validator_rows)
 
@@ -114,8 +161,8 @@ def main():
         "Sample Duration": f"{time_diff:.1f} seconds",
         "Blocks Produced": f"{block_diff:,}",
         "Avg Block Time": f"{avg_block_time:.1f} seconds",
-        "Est Blocks per Hour": f"~ {3600/avg_block_time:,.0f}",
-        "Est Blocks per Day": f"~ {86400/avg_block_time:,.0f}"
+        "Est Blocks per Hour": f"~ {3600 / avg_block_time:,.0f}",
+        "Est Blocks per Day": f"~ {86400 / avg_block_time:,.0f}",
     }
     print_info_box("block time stats", block_data, separators=[3])
 
@@ -131,24 +178,44 @@ def main():
     expected_avg_mint_amount = expected_mint_amount / block_diff
 
     # Use event-based data if available, otherwise fall back to expected
-    if mint_events_data and mint_events_data['total_minted'] > 0:
-        event_mint_amount = mint_events_data['total_minted']
-        event_avg_mint_amount = event_mint_amount / mint_events_data['event_count'] if mint_events_data['event_count'] > 0 else 0
+    if mint_events_data and mint_events_data["total_minted"] > 0:
+        event_mint_amount = mint_events_data["total_minted"]
+        event_avg_mint_amount = (
+            event_mint_amount / mint_events_data["event_count"]
+            if mint_events_data["event_count"] > 0
+            else 0
+        )
 
         # Sanity check: compare event-based vs expected (per block)
         expected_per_block = expected_mint_amount / block_diff
-        if abs(event_avg_mint_amount - expected_per_block) > 100:  # Allow 100 loya tolerance
-            print(colored("  ⚠️  Current time based rewards amount is different from expected", 'yellow', attrs=['bold']))
+        if (
+            abs(event_avg_mint_amount - expected_per_block) > 100
+        ):  # Allow 100 loya tolerance
+            print(
+                colored(
+                    "  ⚠️  Current time based rewards amount is different from expected",
+                    "yellow",
+                    attrs=["bold"],
+                )
+            )
             print(f"     Event-based: {event_avg_mint_amount:,.1f} loya per block")
             print(f"     Expected:    {expected_per_block:,.1f} loya per block")
-            print(f"     Difference:  {abs(event_avg_mint_amount - expected_per_block):,.1f} loya per block")
+            print(
+                f"     Difference:  {abs(event_avg_mint_amount - expected_per_block):,.1f} loya per block"
+            )
 
         # Use event-based data for calculations
         mint_amount = event_mint_amount
         avg_mint_amount = event_avg_mint_amount
         data_source = "Event-based"
     else:
-        print(colored("  ⚠️  No mint events found, using expected calculation", 'yellow', attrs=['bold']))
+        print(
+            colored(
+                "  ⚠️  No mint events found, using expected calculation",
+                "yellow",
+                attrs=["bold"],
+            )
+        )
         mint_amount = expected_mint_amount
         avg_mint_amount = expected_avg_mint_amount
         data_source = "Expected calculation"
@@ -157,8 +224,8 @@ def main():
         "Data Source": data_source,
         "Total TBR from Sample Period": f"{mint_amount * 1e-6:,.2f} TRB",
         "Average TBR Per Block": f"{avg_mint_amount:,.1f} loya",
-        "Projected Daily TBR": f"~ {avg_mint_amount * (86400/avg_block_time) * 1e-6:,.0f} TRB",
-        "Projected Annual TBR": f"~ {avg_mint_amount * (86400/avg_block_time) * 365 * 1e-6:,.0f} TRB"
+        "Projected Daily TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+        "Projected Annual TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
     }
     print_info_box("minting stats", mint_data, separators=[2])
 
@@ -167,8 +234,8 @@ def main():
     txs = query_recent_reports(rpc_client=rpc_client)
     analysis = print_submit_value_analysis(txs, rpc_client, config)
 
-    avg_fee = analysis['avg_fee_loya']
-    avg_gas_cost = analysis.get('avg_min_cost', 0)  # Gas cost from analysis
+    avg_fee = analysis["avg_fee_loya"]
+    avg_gas_cost = analysis.get("avg_min_cost", 0)  # Gas cost from analysis
     min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         min_gas_price = 0
@@ -195,17 +262,21 @@ def main():
         "Reports per Day (1 every other block)": f"~ {reports_per_day:,.0f}",
         "Daily Fee Cost": f"~ {daily_fee_cost_trb:,.4f} TRB",
         "Monthly Fee Cost": f"~ {monthly_fee_cost_trb:,.1f} TRB",
-        "Yearly Fee Cost": f"~ {yearly_fee_cost_trb:,.1f} TRB"
+        "Yearly Fee Cost": f"~ {yearly_fee_cost_trb:,.1f} TRB",
     }
     print_info_box("fee projections", projection_data)
 
     # Check if fee paid is significantly higher than gas cost
     if avg_fee >= avg_gas_cost + 2:
-        excess_fee = int(avg_fee - avg_gas_cost)  # Use floor (int) since fees are whole numbers
+        excess_fee = int(
+            avg_fee - avg_gas_cost
+        )  # Use floor (int) since fees are whole numbers
         yearly_savings_loya = excess_fee * reports_per_day * 365
         yearly_savings_trb = yearly_savings_loya * 1e-6  # Convert to TRB
 
-        print(f"\n\033[1m💡 You could be lowering your avg fee paid by {excess_fee} loya, which would save ~ {yearly_savings_loya:.0f} loya per year ({yearly_savings_trb:.1f} TRB)\033[0m")
+        print(
+            f"\n\033[1m💡 You could be lowering your avg fee paid by {excess_fee} loya, which would save ~ {yearly_savings_loya:.0f} loya per year ({yearly_savings_trb:.1f} TRB)\033[0m"
+        )
         print()
 
     #  Actual reporter data
@@ -227,7 +298,9 @@ def main():
 
     # Create ordered summary without Total Tips All Time
     ordered_summary = {}
-    ordered_summary["Currently Tipped Queries"] = tipping_summary["Currently Tipped Queries"]
+    ordered_summary["Currently Tipped Queries"] = tipping_summary[
+        "Currently Tipped Queries"
+    ]
     ordered_summary["Total Tip Amount"] = tipping_summary["Total Tip Amount"]
     ordered_summary["Average Tip"] = tipping_summary["Average Tip"]
     ordered_summary["Highest Tip"] = tipping_summary["Highest Tip"]
@@ -242,7 +315,9 @@ def main():
     # Check for available tips if account address is configured
     if "account_address" in config and config["account_address"]:
         print(f"\nQuerying available tips for account: {config['account_address']}\n ")
-        available_tips = get_available_tips(rpc_client, config, config["account_address"])
+        available_tips = get_available_tips(
+            rpc_client, config, config["account_address"]
+        )
         if available_tips is not None:
             account_tips_data = {
                 "Claimable reporter rewards": f"{available_tips:.5f} TRB"
@@ -252,29 +327,31 @@ def main():
             print("  Unable to query available tips for this account")
     else:
         print("\n  No account address configured - skipping available tips query")
-        print("  Add 'account_address: your_address_here' to config.yaml to enable this feature")
+        print(
+            "  Add 'account_address: your_address_here' to config.yaml to enable this feature"
+        )
 
     # Get all user tip totals
     print_section_header("USER TIP TOTALS")
 
     # Get the REST endpoint from RPC client
     rest_endpoint = rpc_client.rpc_endpoint
-    if rest_endpoint.endswith('/rpc'):
-        rest_endpoint = rest_endpoint.replace('/rpc', '')
+    if rest_endpoint.endswith("/rpc"):
+        rest_endpoint = rest_endpoint.replace("/rpc", "")
 
     # Get all user tip totals
     user_tip_totals = get_all_user_tip_totals(rest_endpoint)
 
     # Display total tips all time first
     if total_tips is not None:
-        total_tips_data = {
-            "Total Tips All Time": f"{total_tips:.5f} TRB"
-        }
+        total_tips_data = {"Total Tips All Time": f"{total_tips:.5f} TRB"}
         print_info_box("total tips all time", total_tips_data, separators=[1])
 
     if user_tip_totals:
         # Display user tip totals table
-        tip_totals_headers, tip_totals_rows = format_user_tip_totals_for_display(user_tip_totals)
+        tip_totals_headers, tip_totals_rows = format_user_tip_totals_for_display(
+            user_tip_totals
+        )
         print_table("user tip totals", tip_totals_headers, tip_totals_rows)
     else:
         print("  No addresses found with tip totals > 0")
@@ -286,8 +363,12 @@ def main():
 
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
-    avg_profit_per_block = ((avg_proportion_stake * avg_mint_amount) - (avg_fee/2)) * 1e-6
-    median_profit_per_block = ((median_proportion_stake * avg_mint_amount) - (avg_fee/2)) * 1e-6
+    avg_profit_per_block = (
+        (avg_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+    ) * 1e-6
+    median_profit_per_block = (
+        (median_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+    ) * 1e-6
 
     # Time-based projections
     blocks_per_min = 60 / avg_block_time
@@ -305,19 +386,25 @@ def main():
     median_profit_1day = median_profit_per_block * blocks_per_day
 
     # Create profitability table
-    profit_headers = ["Time Period", "Avg Stake Max Profit (TRB)", "Median Stake Max Profit (TRB)"]
+    profit_headers = [
+        "Time Period",
+        "Avg Stake Max Profit (TRB)",
+        "Median Stake Max Profit (TRB)",
+    ]
     profit_rows = [
         ["Per Block", f"{avg_profit_per_block:.6f}", f"{median_profit_per_block:.6f}"],
         ["Per Minute", f"{avg_profit_1min:.6f}", f"{median_profit_1min:.6f}"],
         ["Per Hour", f"{avg_profit_1hour:.1f}", f"{median_profit_1hour:.1f}"],
         ["Per Day", f"{avg_profit_1day:.1f}", f"{median_profit_1day:.1f}"],
         ["Per Month", f"{avg_profit_1day * 30:.1f}", f"{median_profit_1day * 30:.1f}"],
-        ["Per Year", f"{avg_profit_1day * 365:.0f}", f"{median_profit_1day * 365:.0f}"]
+        ["Per Year", f"{avg_profit_1day * 365:.0f}", f"{median_profit_1day * 365:.0f}"],
     ]
     print_table("profitability stats", profit_headers, profit_rows)
 
     # Calculate and display break-even stake
-    break_even_stake, break_even_mult = calculate_break_even_stake(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake)
+    break_even_stake, break_even_mult = calculate_break_even_stake(
+        total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
+    )
     if break_even_stake:
         break_even_data = {
             "Break-even Stake": f"{break_even_stake:.1f} TRB",
@@ -330,23 +417,35 @@ def main():
 
     # Generate APR chart
     print("Generated current_apr_chart.png")
-    generate_apr_chart(total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time, median_stake, break_even_stake, break_even_mult)
+    generate_apr_chart(
+        total_tokens_active,
+        avg_mint_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
+        median_stake,
+        break_even_stake,
+        break_even_mult,
+    )
 
     # Calculate and display individual reporter APRs
     print_section_header("CURRENT REPORTER APRs")
-    reporter_aprs = calculate_reporter_aprs(reporters, total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time)
+    reporter_aprs = calculate_reporter_aprs(
+        reporters, total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
+    )
 
     # Display both weighted average and median APRs in info box
     weighted_avg_apr, median_apr = calculate_apr_avgs(reporter_aprs)
     apr_averages = {
         "Weighted Avg APR": f"{weighted_avg_apr:.2f}%",
-        "Median APR": f"{median_apr:.2f}%"
+        "Median APR": f"{median_apr:.2f}%",
     }
     print_info_box("apr averages", apr_averages)
 
     print_reporter_apr_table(reporter_aprs)
 
-    print("\n  To see your max apr in the current network state, check current_apr_chart.png")
+    print(
+        "\n  To see your max apr in the current network state, check current_apr_chart.png"
+    )
 
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
@@ -355,10 +454,13 @@ def main():
     )
 
     # Display target APR points in info box with current APR
-    target_display = format_targets_for_display_with_apr(targets, total_tokens_active, stake_results)
+    target_display = format_targets_for_display_with_apr(
+        targets, total_tokens_active, stake_results
+    )
     print_info_box("APR target points", target_display, separators=[2])
 
     print_section_header("END")
+
 
 if __name__ == "__main__":
     main()

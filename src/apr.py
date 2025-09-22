@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def calculate_apr_by_stake(stake_amount, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time):
+def calculate_apr_by_stake(
+    stake_amount, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+):
     """Calculate APR for a given stake amount"""
     proportion_stake = stake_amount / total_tokens_active
-    profit_per_block = (proportion_stake * avg_mint_amount) - (avg_fee/2)
+    profit_per_block = (proportion_stake * avg_mint_amount) - (avg_fee / 2)
 
     # Convert to annual profit
     blocks_per_year = (365 * 24 * 3600) / avg_block_time
@@ -17,17 +19,31 @@ def calculate_apr_by_stake(stake_amount, total_tokens_active, avg_mint_amount, a
     apr = (annual_profit / stake_amount) * 100
     return apr
 
-def calculate_break_even_stake(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake):
+
+def calculate_break_even_stake(
+    total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
+):
     """Calculate the break-even stake amount where APR is approximately 0%"""
     # Search more precisely in the range where we expect break-even
     for test_mult in np.linspace(0.05, 0.25, 2000):  # More points in likely range
         test_stake = median_stake * test_mult
-        test_apr = calculate_apr_by_stake(test_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+        test_apr = calculate_apr_by_stake(
+            test_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+        )
         if abs(test_apr) < 1.0:  # Within 1% of zero
             return test_stake, test_mult
     return None, None
 
-def generate_apr_chart(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake, break_even_stake, break_even_mult):
+
+def generate_apr_chart(
+    total_tokens_active,
+    avg_mint_amount,
+    avg_fee,
+    avg_block_time,
+    median_stake,
+    break_even_stake,
+    break_even_mult,
+):
     """Generate APR chart for different stake amounts"""
     # Create stake range from 1% to 200% of median stake
     min_stake = median_stake * 0.01
@@ -36,45 +52,63 @@ def generate_apr_chart(total_tokens_active, avg_mint_amount, avg_fee, avg_block_
 
     aprs = []
     for stake in stake_amounts:
-        apr = calculate_apr_by_stake(stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+        apr = calculate_apr_by_stake(
+            stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+        )
         aprs.append(apr)
 
     # get break even apr if break_even_stake is provided
     if break_even_stake:
-        break_even_apr = calculate_apr_by_stake(break_even_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+        break_even_apr = calculate_apr_by_stake(
+            break_even_stake,
+            total_tokens_active,
+            avg_mint_amount,
+            avg_fee,
+            avg_block_time,
+        )
 
     # Create the plot
     plt.figure(figsize=(12, 8))
-    plt.plot(stake_amounts * 1e-6, aprs, linewidth=2, color='blue')
-    plt.xlabel('Individual Stake Amount (TRB)', fontsize=12)
-    plt.ylabel('Current APR (%)', fontsize=12)
-    plt.title('Current APR vs Individual Stake Amount', fontsize=14, fontweight='bold')
+    plt.plot(stake_amounts * 1e-6, aprs, linewidth=2, color="blue")
+    plt.xlabel("Individual Stake Amount (TRB)", fontsize=12)
+    plt.ylabel("Current APR (%)", fontsize=12)
+    plt.title("Current APR vs Individual Stake Amount", fontsize=14, fontweight="bold")
     plt.grid(True, alpha=0.3)
 
     # Set y-axis limits
     plt.ylim(-500, 1000)
 
     # Add median stake point
-    median_apr = calculate_apr_by_stake(median_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
-    plt.plot(median_stake, median_apr, 'ro', markersize=8, label='Current Median')
-    plt.annotate(f'({median_stake:.2f} TRB, {median_apr:.1f}% APR)',
-            xy=(median_stake, median_apr),
-            xytext=(median_stake + 10, median_apr + 50),
-            fontsize=10, fontweight='bold',
-            arrowprops={'arrowstyle': '->', 'color': 'red', 'alpha': 0.7})
+    median_apr = calculate_apr_by_stake(
+        median_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+    )
+    plt.plot(median_stake, median_apr, "ro", markersize=8, label="Current Median")
+    plt.annotate(
+        f"({median_stake:.2f} TRB, {median_apr:.1f}% APR)",
+        xy=(median_stake, median_apr),
+        xytext=(median_stake + 10, median_apr + 50),
+        fontsize=10,
+        fontweight="bold",
+        arrowprops={"arrowstyle": "->", "color": "red", "alpha": 0.7},
+    )
 
     # Add break-even point if found
     if break_even_stake:
-        plt.plot(break_even_stake, break_even_apr, 'go', markersize=8, label='Break-even')
-        plt.annotate(f'({break_even_stake:.2f} TRB, {break_even_apr:.1f}% APR)',
-                xy=(break_even_stake, break_even_apr),
-                    xytext=(break_even_stake + 5, break_even_apr + 80),
-                    fontsize=10, fontweight='bold',
-                    arrowprops={'arrowstyle': '->', 'color': 'green', 'alpha': 0.7})
+        plt.plot(
+            break_even_stake, break_even_apr, "go", markersize=8, label="Break-even"
+        )
+        plt.annotate(
+            f"({break_even_stake:.2f} TRB, {break_even_apr:.1f}% APR)",
+            xy=(break_even_stake, break_even_apr),
+            xytext=(break_even_stake + 5, break_even_apr + 80),
+            fontsize=10,
+            fontweight="bold",
+            arrowprops={"arrowstyle": "->", "color": "green", "alpha": 0.7},
+        )
 
     plt.legend()
     plt.tight_layout()
-    plt.savefig('current_apr_chart.png', dpi=300, bbox_inches='tight')
+    plt.savefig("current_apr_chart.png", dpi=300, bbox_inches="tight")
 
     return stake_amounts, aprs
 
@@ -94,7 +128,10 @@ def print_info_box(title, data_dict):
     print("│" + " " * 78 + "│")
     print("└" + "─" * 78 + "┘")
 
-def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake):
+
+def print_apr_table(
+    total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
+):
     """Print a beautifully formatted table of APR values for different stake percentiles"""
 
     # Find break-even point first
@@ -104,7 +141,9 @@ def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_tim
     # Search more precisely in the range where we expect break-even
     for test_mult in np.linspace(0.05, 0.25, 2000):  # More points in likely range
         test_stake = median_stake * test_mult
-        test_apr = calculate_apr_by_stake(test_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+        test_apr = calculate_apr_by_stake(
+            test_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+        )
         if abs(test_apr) < 1.0:  # Within 1% of zero
             break_even_stake = test_stake
             break_even_mult = test_mult
@@ -114,10 +153,32 @@ def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_tim
     min_mult_for_1trb = 1e6 / median_stake  # 1 TRB in loya / median_stake in loya
 
     # More granular multipliers focusing on low values, ensuring minimum is 1 TRB
-    base_multipliers = [0.02, 0.05, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0, 20.0]
+    base_multipliers = [
+        0.02,
+        0.05,
+        0.08,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        3.0,
+        5.0,
+        10.0,
+        20.0,
+    ]
 
     # Filter multipliers to ensure minimum stake is 1 TRB and add the exact 1 TRB multiplier
-    multipliers = [min_mult_for_1trb] + [mult for mult in base_multipliers if mult * median_stake >= 1e6]
+    multipliers = [min_mult_for_1trb] + [
+        mult for mult in base_multipliers if mult * median_stake >= 1e6
+    ]
     multipliers = sorted(set(multipliers))  # Remove duplicates and sort
 
     # Add median and break-even multipliers to ensure they appear in the table
@@ -132,7 +193,9 @@ def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_tim
     rows = []
     for mult in multipliers:
         stake = median_stake * mult
-        apr = calculate_apr_by_stake(stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+        apr = calculate_apr_by_stake(
+            stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+        )
         percent_of_total = (stake / total_tokens_active) * 100
 
         # Calculate yearly earnings in TRB
@@ -158,7 +221,9 @@ def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_tim
         # Add emojis for special stakes
         if abs(mult - 1.0) < 0.001:  # Median stake
             stake_str = f"📊 {stake_str}"
-        elif break_even_mult and abs(mult - break_even_mult) < 0.001:  # Break-even stake
+        elif (
+            break_even_mult and abs(mult - break_even_mult) < 0.001
+        ):  # Break-even stake
             stake_str = f"⚖️  {stake_str}"
 
         # Format percentage with consistent spacing
@@ -174,6 +239,7 @@ def print_apr_table(total_tokens_active, avg_mint_amount, avg_fee, avg_block_tim
 
     return break_even_stake, break_even_mult
 
+
 def print_apr_table_with_alignment(headers, rows):
     """Print APR table with right-aligned first column and left-aligned other columns"""
 
@@ -187,24 +253,26 @@ def print_apr_table_with_alignment(headers, rows):
             char_code = ord(char)
 
             # Special handling for specific emoji sequences
-            if char == '⚖' and i + 1 < len(text) and ord(text[i + 1]) == 0xFE0F:
+            if char == "⚖" and i + 1 < len(text) and ord(text[i + 1]) == 0xFE0F:
                 # ⚖️ (scales with variation selector) takes 3 terminal spaces
                 visual_width += 1
                 i += 2  # Skip both the emoji and variation selector
-            elif char == '📊':
+            elif char == "📊":
                 # 📊 takes 2 terminal spaces
                 visual_width += 2
                 i += 1
             elif char_code >= 0x1F000:  # Other emoji range
                 visual_width += 2  # Most emojis take 2 character spaces
                 i += 1
-            elif unicodedata.east_asian_width(char) in ('F', 'W'):  # Full-width or Wide
+            elif unicodedata.east_asian_width(char) in ("F", "W"):  # Full-width or Wide
                 visual_width += 2
                 i += 1
             elif char_code >= 0x2600 and char_code <= 0x26FF:  # Miscellaneous symbols
                 visual_width += 2
                 i += 1
-            elif char_code >= 0xFE00 and char_code <= 0xFE0F:  # Variation selectors (standalone)
+            elif (
+                char_code >= 0xFE00 and char_code <= 0xFE0F
+            ):  # Variation selectors (standalone)
                 # These don't add visual width when standalone, skip
                 i += 1
             else:
@@ -288,26 +356,36 @@ def print_apr_table_with_alignment(headers, rows):
     bottom_line += "┘"
     print(bottom_line)
 
-def calculate_reporter_aprs(reporters_data, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time):
+
+def calculate_reporter_aprs(
+    reporters_data, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+):
     """Calculate APR for each active reporter and return sorted list"""
     reporter_aprs = []
 
-    for reporter in reporters_data['active']:
+    for reporter in reporters_data["active"]:
         # Power is in TRB (same units as total_tokens_active)
-        power_trb = int(reporter['power']) if reporter['power'].isdigit() else 0
+        power_trb = int(reporter["power"]) if reporter["power"].isdigit() else 0
         if power_trb > 0:  # Only calculate for reporters with actual power
-            apr = calculate_apr_by_stake(power_trb, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+            apr = calculate_apr_by_stake(
+                power_trb, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+            )
 
-            reporter_aprs.append({
-                'moniker': reporter['moniker'] or reporter['address'][:12] + '...',
-                'power_trb': power_trb,
-                'apr': apr,
-                'commission_rate': float(reporter['commission_rate']) * 100 if reporter['commission_rate'] else 0
-            })
+            reporter_aprs.append(
+                {
+                    "moniker": reporter["moniker"] or reporter["address"][:12] + "...",
+                    "power_trb": power_trb,
+                    "apr": apr,
+                    "commission_rate": float(reporter["commission_rate"]) * 100
+                    if reporter["commission_rate"]
+                    else 0,
+                }
+            )
 
     # Sort by power (descending)
-    reporter_aprs.sort(key=lambda x: x['power_trb'], reverse=True)
+    reporter_aprs.sort(key=lambda x: x["power_trb"], reverse=True)
     return reporter_aprs
+
 
 def print_reporter_apr_table(reporter_aprs):
     """Print a table of reporter APRs with custom alignment"""
@@ -320,7 +398,7 @@ def print_reporter_apr_table(reporter_aprs):
 
     for reporter in reporter_aprs:
         # Format APR
-        apr = reporter['apr']
+        apr = reporter["apr"]
         if abs(apr) >= 100:
             apr_str = f"{apr:,.0f}%"
         else:
@@ -329,15 +407,18 @@ def print_reporter_apr_table(reporter_aprs):
         # Format commission rate
         comm_str = f"{reporter['commission_rate']:.0f}%"
 
-        rows.append([
-            reporter['moniker'][:20],  # Truncate long monikers
-            f"{reporter['power_trb']:,}",
-            apr_str,
-            comm_str
-        ])
+        rows.append(
+            [
+                reporter["moniker"][:20],  # Truncate long monikers
+                f"{reporter['power_trb']:,}",
+                apr_str,
+                comm_str,
+            ]
+        )
 
     # Custom table printing with specific alignment
     print_reporter_table_with_alignment(headers, rows)
+
 
 def print_reporter_table_with_alignment(headers, rows):
     """Print a table with right-aligned first column and left-aligned other columns"""
@@ -352,24 +433,26 @@ def print_reporter_table_with_alignment(headers, rows):
             char_code = ord(char)
 
             # Special handling for specific emoji sequences
-            if char == '⚖' and i + 1 < len(text) and ord(text[i + 1]) == 0xFE0F:
+            if char == "⚖" and i + 1 < len(text) and ord(text[i + 1]) == 0xFE0F:
                 # ⚖️ (scales with variation selector) takes 3 terminal spaces
                 visual_width += 3
                 i += 2  # Skip both the emoji and variation selector
-            elif char == '📊':
+            elif char == "📊":
                 # 📊 takes 2 terminal spaces
                 visual_width += 2
                 i += 1
             elif char_code >= 0x1F000:  # Other emoji range
                 visual_width += 2  # Most emojis take 2 character spaces
                 i += 1
-            elif unicodedata.east_asian_width(char) in ('F', 'W'):  # Full-width or Wide
+            elif unicodedata.east_asian_width(char) in ("F", "W"):  # Full-width or Wide
                 visual_width += 2
                 i += 1
             elif char_code >= 0x2600 and char_code <= 0x26FF:  # Miscellaneous symbols
                 visual_width += 2
                 i += 1
-            elif char_code >= 0xFE00 and char_code <= 0xFE0F:  # Variation selectors (standalone)
+            elif (
+                char_code >= 0xFE00 and char_code <= 0xFE0F
+            ):  # Variation selectors (standalone)
                 # These don't add visual width when standalone, skip
                 i += 1
             else:
@@ -453,6 +536,7 @@ def print_reporter_table_with_alignment(headers, rows):
     bottom_line += "┘"
     print(bottom_line)
 
+
 def calculate_apr_avgs(reporter_aprs):
     """Calculate both weighted average and median APR of all active reporters"""
     if not reporter_aprs:
@@ -463,8 +547,8 @@ def calculate_apr_avgs(reporter_aprs):
     apr_values = []
 
     for reporter in reporter_aprs:
-        power = reporter['power_trb']
-        apr = reporter['apr']
+        power = reporter["power_trb"]
+        apr = reporter["apr"]
         total_weighted_apr += apr * power
         total_power += power
         apr_values.append(apr)
@@ -478,11 +562,8 @@ def calculate_apr_avgs(reporter_aprs):
     apr_values.sort()
     n = len(apr_values)
     if n % 2 == 0:
-        median_apr = (apr_values[n//2 - 1] + apr_values[n//2]) / 2
+        median_apr = (apr_values[n // 2 - 1] + apr_values[n // 2]) / 2
     else:
-        median_apr = apr_values[n//2]
+        median_apr = apr_values[n // 2]
 
     return weighted_avg, median_apr
-
-
-

@@ -2,6 +2,7 @@
 ABCI query helpers for Tellor Layer specific module queries.
 Converts layerd commands to ABCI queries for unified RPC access.
 """
+
 import json
 from typing import Any, Dict, List
 
@@ -21,7 +22,7 @@ class TellorABCIClient:
             "/cosmos.staking.v1beta1.Query/Validators",
             "/cosmos/staking/v1beta1/validators",
             "/staking/validators",
-            "/cosmos.staking.Query/Validators"
+            "/cosmos.staking.Query/Validators",
         ]
 
         for path in possible_paths:
