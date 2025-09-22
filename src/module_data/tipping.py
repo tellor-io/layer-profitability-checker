@@ -176,12 +176,12 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
         if rpc_client is None:
             print("Warning: RPC client not provided for total tips query")
             return None
-            
+
         rest_endpoint = rpc_client.rpc_endpoint
         if rest_endpoint.endswith('/rpc'):
             rest_endpoint = rest_endpoint.replace('/rpc', '')
         url = f"{rest_endpoint}/tellor-io/layer/oracle/get_tip_total"
-            
+
         result = subprocess.run([
             'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
         ], capture_output=True, text=True, check=True, timeout=10)
@@ -206,10 +206,10 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
         return tips_amount * 1e-6
 
     except subprocess.TimeoutExpired:
-        print(f"Warning: Query timeout for total tips")
+        print("Warning: Query timeout for total tips")
         return None
     except json.JSONDecodeError:
-        print(f"Warning: Invalid JSON response for total tips")
+        print("Warning: Invalid JSON response for total tips")
         return None
     except (ValueError, KeyError) as e:
         print(f"Warning: Error parsing total tips response: {e}")
@@ -301,7 +301,7 @@ def get_tipping_summary(tips: Dict[str, Optional[float]]) -> Dict[str, str]:
 
     if not valid_tips:
         return {
-            "Total Tipped Queries": "0",
+            "Currently Tipped Queries": "0",
             "Total Tip Amount": "0.00000 TRB",
             "Average Tip": "0.00000 TRB",
             "Highest Tip": "0.00000 TRB",
@@ -315,7 +315,7 @@ def get_tipping_summary(tips: Dict[str, Optional[float]]) -> Dict[str, str]:
     min_tip = min(valid_tips)
 
     return {
-        "Total Tipped Queries": f"{total_tipped}",
+        "Currently Tipped Queries": f"{total_tipped}",
         "Total Tip Amount": f"{total_amount:.5f} TRB",
         "Average Tip": f"{avg_tip:.5f} TRB",
         "Highest Tip": f"{max_tip:.5f} TRB",
@@ -336,38 +336,38 @@ def get_all_denom_owners(rest_endpoint: str) -> List[str]:
     all_addresses = []
     next_key = None
     page = 1
-    
-    print(f"Fetching all loya denom owners...")
-    
+
+    print("Fetching all loya denom owners...")
+
     while True:
         # Build URL with pagination
         url = f"{rest_endpoint}/cosmos/bank/v1beta1/denom_owners/loya"
         if next_key:
             url += f"?pagination.key={next_key}"
-        
+
         try:
             result = subprocess.run([
                 'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
             ], capture_output=True, text=True, check=True, timeout=30)
-            
+
             response = json.loads(result.stdout)
-            
+
             # Extract addresses from this page
             denom_owners = response.get('denom_owners', [])
             page_addresses = [owner['address'] for owner in denom_owners]
             all_addresses.extend(page_addresses)
-            
+
             print(f"  Page {page}: {len(page_addresses)} addresses (total: {len(all_addresses)})")
-            
+
             # Check if there are more pages
             pagination = response.get('pagination', {})
             next_key = pagination.get('next_key')
-            
+
             if not next_key:
                 break
-                
+
             page += 1
-            
+
         except subprocess.TimeoutExpired:
             print(f"Warning: Timeout fetching page {page}")
             break
@@ -377,7 +377,7 @@ def get_all_denom_owners(rest_endpoint: str) -> List[str]:
         except Exception as e:
             print(f"Warning: Error fetching page {page}: {e}")
             break
-    
+
     print(f"  Retrieved {len(all_addresses)} total addresses")
     return all_addresses
 
@@ -398,9 +398,9 @@ def get_user_tip_total(rest_endpoint: str, address: str) -> Optional[float]:
         result = subprocess.run([
             'curl', '-s', '-X', 'GET', url, '-H', 'accept: application/json'
         ], capture_output=True, text=True, check=True, timeout=10)
-        
+
         response = json.loads(result.stdout)
-        
+
         # Extract tip total from response
         if 'total_tips' in response:
             tip_amount = float(response['total_tips'])
@@ -415,10 +415,10 @@ def get_user_tip_total(rest_endpoint: str, address: str) -> Optional[float]:
         else:
             # If the response is just a number
             tip_amount = float(response)
-        
+
         # Convert from loya to TRB (assuming 1 TRB = 1e6 loya)
         return tip_amount * 1e-6
-        
+
     except subprocess.TimeoutExpired:
         return None
     except json.JSONDecodeError:
@@ -441,22 +441,22 @@ def get_all_user_tip_totals(rest_endpoint: str) -> List[Tuple[str, float]]:
     """
     # Get all addresses
     addresses = get_all_denom_owners(rest_endpoint)
-    
+
     tip_totals = []
     print(f"\nQuerying tip totals for {len(addresses)} addresses...")
-    
+
     for i, address in enumerate(addresses, 1):
         if i % 10 == 0 or i == len(addresses):
             print(f"  Progress: {i}/{len(addresses)} addresses queried")
-        
+
         tip_total = get_user_tip_total(rest_endpoint, address)
-        
+
         if tip_total is not None and tip_total > 0:
             tip_totals.append((address, tip_total))
-    
+
     # Sort by tip total (descending)
     tip_totals.sort(key=lambda x: x[1], reverse=True)
-    
+
     print(f"  Found {len(tip_totals)} addresses with tip totals > 0")
     return tip_totals
 
@@ -473,8 +473,8 @@ def format_user_tip_totals_for_display(tip_totals: List[Tuple[str, float]]) -> T
     """
     headers = ["Address", "Total Tips (TRB)"]
     rows = []
-    
+
     for address, tip_total in tip_totals:
         rows.append([address, f"{tip_total:.5f}"])
-    
+
     return headers, rows

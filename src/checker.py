@@ -221,22 +221,18 @@ def main():
 
     # Get total tips all time
     total_tips = get_total_tips(rpc_client)
-    
+
     # Display tipping summary with custom ordering
     tipping_summary = get_tipping_summary(current_tips)
-    
-    # Create ordered summary with Total Tips All Time at the top
+
+    # Create ordered summary without Total Tips All Time
     ordered_summary = {}
-    if total_tips is not None:
-        ordered_summary["Total Tips All Time"] = f"{total_tips:.5f} TRB"
-    
-    # Add the rest in the requested order
-    ordered_summary["Total Tipped Queries"] = tipping_summary["Total Tipped Queries"]
+    ordered_summary["Currently Tipped Queries"] = tipping_summary["Currently Tipped Queries"]
     ordered_summary["Total Tip Amount"] = tipping_summary["Total Tip Amount"]
     ordered_summary["Average Tip"] = tipping_summary["Average Tip"]
     ordered_summary["Highest Tip"] = tipping_summary["Highest Tip"]
     ordered_summary["Lowest Tip"] = tipping_summary["Lowest Tip"]
-    
+
     print_info_box("tipping summary", ordered_summary, separators=[1, 3])
 
     # Display tips table
@@ -260,15 +256,22 @@ def main():
 
     # Get all user tip totals
     print_section_header("USER TIP TOTALS")
-    
+
     # Get the REST endpoint from RPC client
     rest_endpoint = rpc_client.rpc_endpoint
     if rest_endpoint.endswith('/rpc'):
         rest_endpoint = rest_endpoint.replace('/rpc', '')
-    
+
     # Get all user tip totals
     user_tip_totals = get_all_user_tip_totals(rest_endpoint)
-    
+
+    # Display total tips all time first
+    if total_tips is not None:
+        total_tips_data = {
+            "Total Tips All Time": f"{total_tips:.5f} TRB"
+        }
+        print_info_box("total tips all time", total_tips_data, separators=[1])
+
     if user_tip_totals:
         # Display user tip totals table
         tip_totals_headers, tip_totals_rows = format_user_tip_totals_for_display(user_tip_totals)
