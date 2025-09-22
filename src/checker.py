@@ -63,9 +63,6 @@ def main():
     rpc_client = TellorRPCClient(rpc_endpoint)
     abci_client = TellorABCIClient(rpc_client)
 
-    # layerd_path is no longer needed - everything uses RPC client
-    # But some functions still expect it, so we'll pass None
-    layerd_path = None
 
     # get chain id
     try:
@@ -165,11 +162,11 @@ def main():
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
     txs = query_recent_reports(rpc_client=rpc_client)
-    analysis = print_submit_value_analysis(txs, layerd_path, rpc_client, config)
+    analysis = print_submit_value_analysis(txs, rpc_client, config)
 
     avg_fee = analysis['avg_fee_loya']
     avg_gas_cost = analysis.get('avg_min_cost', 0)  # Gas cost from analysis
-    min_gas_price = get_min_gas_price(layerd_path, rpc_client, config)
+    min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         min_gas_price = 0
 

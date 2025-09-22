@@ -79,45 +79,9 @@ def get_current_tip(rpc_client=None, config=None, query_data: str = None) -> Opt
             return tip_amount * 1e-6
 
         else:
-            # Fallback to layerd binary if RPC client not available
-            if config and 'layerd_path' in config and query_data:
-                layerd_path = config['layerd_path']
-                cmd = [
-                    layerd_path,
-                    "query",
-                    "oracle",
-                    "get-current-tip",
-                    query_data,
-                    "--output", "json"
-                ]
-
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-                if result.returncode != 0:
-                    print(f"Warning: Failed to query tip for query_data: {result.stderr}")
-                    return None
-
-                # Parse the JSON response
-                response = json.loads(result.stdout)
-
-                # Extract tip amount from response
-                if 'tips' in response:
-                    tip_amount = float(response['tips'])
-                elif 'tip' in response:
-                    tip_amount = float(response['tip'])
-                elif 'amount' in response:
-                    tip_amount = float(response['amount'])
-                elif 'value' in response:
-                    tip_amount = float(response['value'])
-                else:
-                    # If the response is just a number
-                    tip_amount = float(response)
-
-                # Convert from loya to TRB (assuming 1 TRB = 1e6 loya)
-                return tip_amount * 1e-6
-            else:
-                print("Warning: No RPC client, config, or query_data available")
-                return None
+            # No fallback available
+            print("No RPC client available for tip query")
+            return None
 
     except subprocess.CalledProcessError as e:
         print(f"Warning: Failed to query tip for query_data: {e}")
@@ -244,47 +208,9 @@ def get_available_tips(rpc_client=None, config=None, selector_address: str = Non
             return tips_amount
 
         else:
-            # Fallback to layerd binary if RPC client not available
-            if config and 'layerd_path' in config and selector_address:
-                layerd_path = config['layerd_path']
-                cmd = [
-                    layerd_path,
-                    "query",
-                    "reporter",
-                    "available-tips",
-                    selector_address,
-                    "--output", "json"
-                ]
-
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-                if result.returncode != 0:
-                    print(f"Warning: Failed to query available tips: {result.stderr}")
-                    return None
-
-                # Parse the JSON response
-                response = json.loads(result.stdout)
-
-                # Extract available tips amount from response
-                if 'available_tips' in response:
-                    tips_amount_str = response['available_tips']
-                elif 'tips' in response:
-                    tips_amount_str = response['tips']
-                elif 'amount' in response:
-                    tips_amount_str = response['amount']
-                elif 'value' in response:
-                    tips_amount_str = response['value']
-                else:
-                    # If the response is just a number
-                    tips_amount_str = str(response)
-
-                # Convert from loya to TRB (1 TRB = 1e6 loya)
-                tips_amount = float(tips_amount_str) / 1e6
-
-                return tips_amount
-            else:
-                print("Warning: No RPC client, config, or selector_address available")
-                return None
+            # No fallback available
+            print("No RPC client available for available tips query")
+            return None
 
     except subprocess.CalledProcessError as e:
         print(f"Warning: Failed to query available tips: {e}")

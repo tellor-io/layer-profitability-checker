@@ -1,73 +1,29 @@
 import random
-import subprocess
 import sys
 import time
-from datetime import datetime
 from typing import Optional
 
 from .rpc_client import TellorRPCClient
 
 
 # get current block height and block timestamp
-def get_block_height_and_timestamp(layerd_path, rpc_client: Optional[TellorRPCClient] = None):
+def get_block_height_and_timestamp(rpc_client: Optional[TellorRPCClient] = None):
     if rpc_client is not None:
         # Use RPC client
         try:
             return rpc_client.get_block_height_and_timestamp()
         except Exception as e:
             print(f"Error getting block info via RPC: {e}")
-            raise Exception("RPC client is required - layerd binary fallback is disabled") from e
+            raise Exception("RPC client is required") from e
     else:
-        raise Exception("RPC client is required - layerd binary fallback is disabled")
-
-def get_block_height_and_timestamp_fallback(layerd_path):
-    try:
-        # run `layerd query block`
-        result = subprocess.run([layerd_path, 'query', 'block'],
-                               capture_output=True, text=True, check=True)
-
-        # output cleanup
-        lines = result.stdout.strip().split('\n')
-        block_height = None
-        timestamp = None
-        for line in lines:
-            if line.strip().startswith('height:'):
-                block_height = int(line.split('"')[1])
-            elif line.strip().startswith('time:'):
-                timestamp_str = line.split('"')[1]
-
-                # Handle nanoseconds by truncating to microseconds (Python only supports up to microseconds)
-                if '.' in timestamp_str:
-                    if timestamp_str.endswith('Z'):
-                        # Format: 2025-05-28T20:35:31.196915692Z
-                        base_time = timestamp_str[:-1]  # Remove Z
-                        date_part, frac = base_time.split('.')
-                        frac = frac[:6].ljust(6, '0')  # Truncate to microseconds
-                        timestamp_str = f"{date_part}.{frac}+00:00"
-                    elif '+' in timestamp_str:
-                        # Format: 2025-05-28T20:35:31.196915692+00:00
-                        base_time, tz = timestamp_str.split('+')
-                        date_part, frac = base_time.split('.')
-                        frac = frac[:6].ljust(6, '0')  # Truncate to microseconds
-                        timestamp_str = f"{date_part}.{frac}+{tz}"
-
-                timestamp = datetime.fromisoformat(timestamp_str)
-
-        return block_height, timestamp
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error running layerd query: {e}")
-        return None, None
-    except Exception as e:
-        print(f"Error parsing block info: {e}")
-        return None, None
+        raise Exception("RPC client is required")
 
 # gets the average block time by sampling twice with a 20s sleep
 def get_average_block_time(rpc_client: TellorRPCClient):
     sleep_duration = 20
     """Calculate average block time by sampling twice with a 20s sleep interval"""
 
-    height1, time1 = get_block_height_and_timestamp(None, rpc_client)
+    height1, time1 = get_block_height_and_timestamp(rpc_client)
 
     if height1 is None or time1 is None:
         print("Failed to get initial block info")
@@ -78,7 +34,7 @@ def get_average_block_time(rpc_client: TellorRPCClient):
 
     sleep_box(sleep_duration)
 
-    height2, time2 = get_block_height_and_timestamp(None, rpc_client)
+    height2, time2 = get_block_height_and_timestamp(rpc_client)
 
     if height2 is None or time2 is None:
         print("Failed to get second block info")

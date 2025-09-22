@@ -1,16 +1,8 @@
-import subprocess
 from typing import Optional
-
-import yaml
 
 from ..chain_data.abci_queries import TellorABCIClient
 from ..chain_data.rpc_client import TellorRPCClient
 
-
-def get_layerd_path():
-    with open("config.yaml") as f:
-        config = yaml.safe_load(f)
-    return config.get("layerd_path", "layerd")  # fallback to 'layerd' in PATH
 
 def get_total_stake(rpc_client: Optional[TellorRPCClient] = None, abci_client: Optional[TellorABCIClient] = None):
     if rpc_client is not None:
@@ -23,29 +15,13 @@ def get_total_stake(rpc_client: Optional[TellorRPCClient] = None, abci_client: O
             return process_validator_data(data)
         except Exception as e:
             print(f"Error querying validators via RPC: {e}")
-            # If RPC fails, return empty data instead of falling back to layerd
+            # If RPC fails, return empty data
             return 0, 0, 0, 0, 0, 0, 0, 0, 0, []
     else:
-        raise Exception("RPC client is required - layerd binary fallback is disabled")
-
-def get_total_stake_fallback():
-    layerd_path = get_layerd_path()
-    cmd = [
-        layerd_path,
-        "query",
-        "staking",
-        "validators",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise Exception(f"Command failed: {result.stderr}")
-
-    # Parse YAML output
-    data = yaml.safe_load(result.stdout)
-    return process_validator_data(data)
+        raise Exception("RPC client is required")
 
 def process_validator_data(data):
-    """Process validator data from either RPC or layerd response"""
+    """Process validator data from RPC response"""
     total_tokens_active = 0
     total_tokens_jailed = 0
     total_tokens_unbonding = 0
@@ -59,7 +35,7 @@ def process_validator_data(data):
     # Extract validators from the response structure
     validators = data.get('validators', [])
 
-    # Check if this is REST API format (has tokens) or layerd format (has tokens)
+    # Check if this is REST API format (has tokens)
     is_rest_api_format = validators and 'tokens' in validators[0]
 
     if is_rest_api_format:
@@ -114,38 +90,6 @@ def process_validator_data(data):
 
     return total_tokens_active, total_tokens_jailed, total_tokens_unbonding, total_tokens_unbonded, active_count, jailed_count, unbonding_count, unbonded_count, median_stake, active_validator_stakes
 
-def get_total_active_tokens():
-    """Calculate total active tokens by summing up tokens from all BOND_STATUS_BONDED validators"""
-    layerd_path = get_layerd_path()
-    cmd = [
-        layerd_path,
-        "query",
-        "staking",
-        "validators",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise Exception(f"Command failed: {result.stderr}")
-
-    # Parse YAML output
-    data = yaml.safe_load(result.stdout)
-    total_active_tokens = 0
-    bonded_validators_count = 0
-
-    # Extract validators from the response structure
-    validators = data.get('validators', [])
-
-    for validator in validators:
-        status = validator.get('status', 0)
-
-        # Status 3 = BOND_STATUS_BONDED
-        if status == 3:
-            # Get the tokens amount (this should be in uip tokens)
-            tokens = int(validator.get('tokens', '0'))
-            total_active_tokens += tokens
-            bonded_validators_count += 1
-
-    return total_active_tokens, bonded_validators_count
 
 def calculate_median_from_list(token_amounts):
     """Calculate median from a list of token amounts"""
@@ -167,12 +111,3 @@ def calculate_median_from_list(token_amounts):
 
     return median
 
-# Test the new function
-if __name__ == "__main__":
-    try:
-        total_active_tokens, bonded_count = get_total_active_tokens()
-        print(f"Number of bonded validators: {bonded_count}")
-        print(f"Total active tokens from BOND_STATUS_BONDED validators (loya): {total_active_tokens:,}")
-        print(f"Total active tokens (TRB): {total_active_tokens / 1_000_000:,.6f}")
-    except Exception as e:
-        print(f"Error: {e}")

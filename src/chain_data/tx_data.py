@@ -1,6 +1,4 @@
 import base64
-import json
-import subprocess
 from typing import Any, Dict, Optional
 
 from ..module_data.globalfee import get_min_gas_price
@@ -65,9 +63,9 @@ def parse_submit_value_transaction(tx_base64: str) -> Optional[Dict[str, Any]]:
 
 
 # queries 10 blocks ago and forward, returns dict with up to 10 submit value tx, max 2 per block
-def query_recent_reports(layerd_path=None, rpc_client: Optional[TellorRPCClient] = None, limit=10):
+def query_recent_reports(rpc_client: Optional[TellorRPCClient] = None, limit=10):
     print("Getting current block height..." + "\n")
-    current_height, _ = get_block_height_and_timestamp(layerd_path, rpc_client)
+    current_height, _ = get_block_height_and_timestamp(rpc_client)
     if not current_height:
         print("Could not get current block height")
         return None
@@ -123,16 +121,9 @@ def query_recent_reports(layerd_path=None, rpc_client: Optional[TellorRPCClient]
                         print(f"Error decoding transaction: {e}")
                         continue
             else:
-                # Fallback to layerd binary (should not happen in current setup)
-                result = subprocess.run([
-                    layerd_path, 'query', 'txs',
-                    '--query', f'message.action=\'/layer.oracle.MsgSubmitValue\' AND tx.height = {height}',
-                    '--limit', '100',  # Get all txs from this height
-                    '--output', 'json'
-                ], capture_output=True, text=True, check=True)
-
-                response = json.loads(result.stdout)
-                block_txs = response.get('txs', [])
+                # No RPC client available
+                print(f"No RPC client available for height {height}")
+                block_txs = []
 
             if block_txs:
                 # Take only 2 transactions per block
@@ -164,7 +155,7 @@ def query_recent_reports(layerd_path=None, rpc_client: Optional[TellorRPCClient]
         }
 
 # analyzes the submit value transactions and returns a dict with the num txs, gas usage, and fee info
-def analyze_submit_value_transactions(tx_response, layerd_path, rpc_client=None, config=None):
+def analyze_submit_value_transactions(tx_response, rpc_client=None, config=None):
     if not tx_response or not tx_response.get('txs'):
         return {
             'tx_count': 0,
@@ -221,7 +212,7 @@ def analyze_submit_value_transactions(tx_response, layerd_path, rpc_client=None,
     reporters = []
 
     # Get minimum gas price once
-    min_gas_price = get_min_gas_price(layerd_path, rpc_client, config)
+    min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         print("Warning: Could not get minimum gas price")
         return {
@@ -320,7 +311,7 @@ def analyze_submit_value_transactions(tx_response, layerd_path, rpc_client=None,
         'reporters': reporters
     }
 
-def query_mint_events(layerd_path=None, start_height=None, end_height=None, rpc_endpoint=None, rpc_client=None):
+def query_mint_events(start_height=None, end_height=None, rpc_endpoint=None, rpc_client=None):
     """
     Query mint_coins events from recent blocks using CometBFT RPC
     Returns dict with total minted amount and event details
@@ -386,14 +377,14 @@ def query_mint_events(layerd_path=None, start_height=None, end_height=None, rpc_
     else:
         raise Exception("RPC client is required - layerd binary fallback is disabled")
 
-def print_submit_value_analysis(tx_response, layerd_path, rpc_client=None, config=None):
+def print_submit_value_analysis(tx_response, rpc_client=None, config=None):
     """
     Print a formatted analysis of submit value transactions
     """
-    analysis = analyze_submit_value_transactions(tx_response, layerd_path, rpc_client, config)
+    analysis = analyze_submit_value_transactions(tx_response, rpc_client, config)
 
     # Get minimum gas price once
-    min_gas_price = get_min_gas_price(layerd_path, rpc_client, config)
+    min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         print("Warning: Could not get minimum gas price")
         min_gas_price = 0

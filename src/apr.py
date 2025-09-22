@@ -302,7 +302,7 @@ def calculate_reporter_aprs(reporters_data, total_tokens_active, avg_mint_amount
                 'moniker': reporter['moniker'] or reporter['address'][:12] + '...',
                 'power_trb': power_trb,
                 'apr': apr,
-                'commission_rate': float(reporter['commission_rate']) / 1e18 * 100 if reporter['commission_rate'] else 0
+                'commission_rate': float(reporter['commission_rate']) * 100 if reporter['commission_rate'] else 0
             })
 
     # Sort by power (descending)

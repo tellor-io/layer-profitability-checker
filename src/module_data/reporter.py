@@ -31,22 +31,11 @@ def get_reporters(rpc_client=None, config=None) -> tuple[Dict[str, List[Dict[str
             # Parse JSON response
             reporters_data = json.loads(result.stdout)
         else:
-            # Fallback to layerd binary if RPC client not available
-            if config and 'layerd_path' in config:
-                layerd_path = config['layerd_path']
-                result = subprocess.run(
-                    [layerd_path, 'query', 'reporter', 'reporters'],
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                # Parse YAML output
-                reporters_data = yaml.safe_load(result.stdout)
-            else:
-                print("Error: No RPC client or layerd_path available")
-                empty_summary = {'Total Reporters': '0', 'Active Reporters': '0', 'Inactive Reporters': '0',
-                                'Jailed Reporters': '0', 'Total Active Power': '0'}
-                return ({'active': [], 'inactive': [], 'jailed': []}, empty_summary)
+            # No fallback available
+            print("Error: No RPC client available")
+            empty_summary = {'Total Reporters': '0', 'Active Reporters': '0', 'Inactive Reporters': '0',
+                            'Jailed Reporters': '0', 'Total Active Power': '0'}
+            return ({'active': [], 'inactive': [], 'jailed': []}, empty_summary)
 
         active_reporters = []
         inactive_reporters = []
@@ -156,7 +145,6 @@ def get_reporters(rpc_client=None, config=None) -> tuple[Dict[str, List[Dict[str
 # Would be nice to show 0 power instead of a not having the field.
 
 # ```
-# /layerd query reporter reporters
 # pagination:
 #   total: "36"
 # reporters:
