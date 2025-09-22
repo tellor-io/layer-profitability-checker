@@ -8,8 +8,9 @@ from .apr import (
     generate_apr_chart,
     print_reporter_apr_table,
 )
+from .chain_data.abci_queries import TellorABCIClient
 from .chain_data.block_data import get_average_block_time
-from .chain_data.node_data import get_chain_id
+from .chain_data.rpc_client import TellorRPCClient
 from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_mint_events,
@@ -52,29 +53,37 @@ def main():
     print(colored("║" + "★" * 78 + "║", 'green', attrs=['bold']))
     print(colored("└" + "═" * 78 + "┘", 'green', attrs=['bold']))
 
-    # load node url and layerd path from config
+    # load configuration
     with open("config.yaml") as f:
         config = yaml.safe_load(f)
-    layerd_path = config["layerd_path"]
+
+    # Initialize RPC client (unified approach)
+    rpc_endpoint = config.get("rpc_endpoint", "http://localhost:26657")
+    print(f"Using RPC endpoint: {rpc_endpoint}")
+    rpc_client = TellorRPCClient(rpc_endpoint)
+    abci_client = TellorABCIClient(rpc_client)
+
 
     # get chain id
-    chain_id = get_chain_id(layerd_path)
-    print("\n")
-    print(colored(f"  Chain ID: {chain_id}", 'green', attrs=['bold']))
+    try:
+        chain_id = rpc_client.get_chain_id()
+        print("\n")
+        print(colored(f"  Chain ID: {chain_id}", 'green', attrs=['bold']))
+    except Exception as e:
+        print(f"Error getting chain ID: {e}")
+        chain_id = "unknown"
 
     # get total stake
     print_section_header("STAKING DISTRIBUTION")
-    total_tokens_active, total_tokens_jailed, total_tokens_unbonding, active_count, jailed_count, unbonding_count, median_stake, active_validator_stakes = get_total_stake()
+    total_tokens_active, total_tokens_jailed, total_tokens_unbonding, total_tokens_unbonded, active_count, jailed_count, unbonding_count, unbonded_count, median_stake, active_validator_stakes = get_total_stake(rpc_client, abci_client)
     avg_stake = total_tokens_active / active_count
-
-    print("Getting active validator set...")
 
     # Display average and median stakes first
     stake_summary = {
-        "Total Active Validator Tokens": f"{total_tokens_active * 1e-6:,.1f} TRB",
         "Num Active Validators": f"{active_count:,}",
-        "Avg Active Validator Tokens": f"{avg_stake * 1e-6:,.1f} TRB",
-        "Median Active Validator Tokens": f"{median_stake * 1e-6:,.1f} TRB",
+        "Total Active Validator Tokens": f"{total_tokens_active:,.1f} TRB",
+        "Avg Active Validator Tokens": f"{avg_stake:,.1f} TRB",
+        "Median Active Validator Tokens": f"{median_stake:,.1f} TRB",
     }
     print_info_box("stake distribution", stake_summary, separators=[])
 
@@ -84,9 +93,10 @@ def main():
     # Display active/jailed/unbonding data in a table
     validator_headers = ["Status", "Count", "Tokens (TRB)"]
     validator_rows = [
-        ["Active", f"{active_count:,}", f"{total_tokens_active * 1e-6:,.1f}"],
-        ["Unbonding", f"{unbonding_count:,}", f"{total_tokens_unbonding * 1e-6:,.1f}"],
-        ["Jailed", f"{jailed_count:,}", f"{total_tokens_jailed * 1e-6:,.1f}"]
+        ["Active", f"{active_count:,}", f"{total_tokens_active:,.1f}"],
+        ["Unbonding", f"{unbonding_count:,}", f"{total_tokens_unbonding:,.1f}"],
+        ["Unbonded", f"{unbonded_count:,}", f"{total_tokens_unbonded:,.1f}"],
+        ["Jailed", f"{jailed_count:,}", f"{total_tokens_jailed:,.1f}"]
     ]
     print_table("validator status", validator_headers, validator_rows)
 
@@ -95,7 +105,7 @@ def main():
 
     # get current block height and timestamp
     print_section_header("CURRENT BLOCK TIMES")
-    avg_block_time, time_diff, block_diff = get_average_block_time(layerd_path)
+    avg_block_time, time_diff, block_diff = get_average_block_time(rpc_client)
 
     block_data = {
         "Sample Duration": f"{time_diff:.1f} seconds",
@@ -110,7 +120,7 @@ def main():
     print_section_header("TIME BASED REWARDS")
 
     # Query mint events from recent blocks
-    mint_events_data = query_mint_events(layerd_path)
+    mint_events_data = query_mint_events(rpc_client=rpc_client)
 
     # Calculate expected TBR as sanity check
     minter = Minter()
@@ -151,11 +161,12 @@ def main():
 
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
-    txs = query_recent_reports(layerd_path)
-    analysis = print_submit_value_analysis(txs, layerd_path)
+    txs = query_recent_reports(rpc_client=rpc_client)
+    analysis = print_submit_value_analysis(txs, rpc_client, config)
 
     avg_fee = analysis['avg_fee_loya']
-    min_gas_price = get_min_gas_price(layerd_path)
+    avg_gas_cost = analysis.get('avg_min_cost', 0)  # Gas cost from analysis
+    min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         min_gas_price = 0
 
@@ -185,16 +196,25 @@ def main():
     }
     print_info_box("fee projections", projection_data)
 
+    # Check if fee paid is significantly higher than gas cost
+    if avg_fee >= avg_gas_cost + 2:
+        excess_fee = int(avg_fee - avg_gas_cost)  # Use floor (int) since fees are whole numbers
+        yearly_savings_loya = excess_fee * reports_per_day * 365
+        yearly_savings_trb = yearly_savings_loya * 1e-6  # Convert to TRB
+
+        print(f"\n\033[1m💡 You could be lowering your avg fee paid by {excess_fee} loya, which would save ~ {yearly_savings_loya:.0f} loya per year ({yearly_savings_trb:.1f} TRB)\033[0m")
+        print()
+
     #  Actual reporter data
     print_section_header("REPORTERS")
-    reporters, reporter_summary = get_reporters(layerd_path)
+    reporters, reporter_summary = get_reporters(rpc_client, config)
     print_info_box("reporter summary", reporter_summary, separators=[1, 4])
 
     # Tipping information
     print_section_header("CURRENT TIPS")
 
     # Get current tips for all price feeds
-    current_tips = get_all_current_tips(layerd_path, "config.yaml")
+    current_tips = get_all_current_tips(rpc_client, config)
 
     # Display tipping summary
     tipping_summary = get_tipping_summary(current_tips)
@@ -207,10 +227,10 @@ def main():
     # Check for available tips if account address is configured
     if "account_address" in config and config["account_address"]:
         print(f"\nQuerying available tips for account: {config['account_address']}\n ")
-        available_tips = get_available_tips(layerd_path, config["account_address"])
+        available_tips = get_available_tips(rpc_client, config, config["account_address"])
         if available_tips is not None:
             account_tips_data = {
-                "Available Tips": f"{available_tips:.5f} loya"
+                "Claimable reporter rewards": f"{available_tips:.5f} TRB"
             }
             print_info_box("account available tips", account_tips_data)
         else:
@@ -260,17 +280,21 @@ def main():
     break_even_stake, break_even_mult = calculate_break_even_stake(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake)
     if break_even_stake:
         break_even_data = {
-            "Break-even Stake": f"{break_even_stake * 1e-6:.1f} TRB",
+            "Break-even Stake": f"{break_even_stake:.1f} TRB",
         }
         print_info_box("break-even analysis", break_even_data)
 
+    # Convert loya to TRB for APR calculations
+    avg_mint_amount_trb = avg_mint_amount * 1e-6
+    avg_fee_trb = avg_fee * 1e-6
+
     # Generate APR chart
     print("Generated current_apr_chart.png")
-    generate_apr_chart(total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake, break_even_stake, break_even_mult)
+    generate_apr_chart(total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time, median_stake, break_even_stake, break_even_mult)
 
     # Calculate and display individual reporter APRs
     print_section_header("CURRENT REPORTER APRs")
-    reporter_aprs = calculate_reporter_aprs(reporters, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time)
+    reporter_aprs = calculate_reporter_aprs(reporters, total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time)
 
     # Display both weighted average and median APRs in info box
     weighted_avg_apr, median_apr = calculate_apr_avgs(reporter_aprs)
@@ -287,12 +311,12 @@ def main():
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
     stake_results, targets = run_scenarios_analysis(
-        total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+        total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
     )
 
     # Display target APR points in info box with current APR
     target_display = format_targets_for_display_with_apr(targets, total_tokens_active, stake_results)
-    print_info_box("APR target points", target_display, separators=[1])
+    print_info_box("APR target points", target_display, separators=[2])
 
     print_section_header("END")
 
