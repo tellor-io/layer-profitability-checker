@@ -1,6 +1,7 @@
 DAILY_MINT_RATE = 146940000  # loya per day
 MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000
 
+
 # recreate mint module logic
 class Minter:
     def __init__(self, bond_denom="loya"):
