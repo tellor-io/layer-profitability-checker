@@ -235,7 +235,6 @@ def main():
     analysis = print_submit_value_analysis(txs, rpc_client, config)
 
     avg_fee = analysis["avg_fee_loya"]
-    avg_gas_cost = analysis.get("avg_min_cost", 0)  # Gas cost from analysis
     min_gas_price = get_min_gas_price(rpc_client, config)
     if min_gas_price is None:
         min_gas_price = 0
@@ -265,19 +264,6 @@ def main():
         "Yearly Fee Cost": f"~ {yearly_fee_cost_trb:,.1f} TRB",
     }
     print_info_box("fee projections", projection_data)
-
-    # Check if fee paid is significantly higher than gas cost
-    if avg_fee >= avg_gas_cost + 2:
-        excess_fee = int(
-            avg_fee - avg_gas_cost
-        )  # Use floor (int) since fees are whole numbers
-        yearly_savings_loya = excess_fee * reports_per_day * 365
-        yearly_savings_trb = yearly_savings_loya * 1e-6  # Convert to TRB
-
-        print(
-            f"\n\033[1m💡 You could be lowering your avg fee paid by {excess_fee} loya, which would save ~ {yearly_savings_loya:.0f} loya per year ({yearly_savings_trb:.1f} TRB)\033[0m"
-        )
-        print()
 
     #  Actual reporter data
     print_section_header("REPORTERS")
