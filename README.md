@@ -1,6 +1,6 @@
 # Tellor Layer Profitability Checker
 
-A comprehensive analysis tool for evaluating validator/reporter profitability on the Tellor Layer network. Projections assume a validator and reporter are being ran.
+A comprehensive analysis tool for evaluating validator/reporter profitability on the Tellor Layer network. Projections assume a validator and reporter are being ran. Results of each scan are automatically exported to csv.
 
 ## Quick Start
 
@@ -22,6 +22,9 @@ cp config_example.yaml config.yaml
 
 # Run the tool
 uv run prof-check
+
+# To run the scan on an interval (linux)
+while true; do prof-check; sleep 600; done
 ```
 
 ## Requirements
