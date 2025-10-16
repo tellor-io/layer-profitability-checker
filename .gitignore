@@ -51,6 +51,12 @@ config.yaml
 *.png
 *.log
 
+# Don't ignore the data directory structure
+!data/
+!data/README.md
+# But ignore CSV files if you don't want to commit historical data
+# data/*.csv
+
 # Jupyter Notebook
 .ipynb_checkpoints
 

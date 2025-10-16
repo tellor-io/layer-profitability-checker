@@ -320,6 +320,61 @@ def export_apr_by_total_stake(current_network_stake, current_apr, stake_results)
         writer.writerow(row_data)
 
 
+def export_network_profitability_summary(
+    current_network_stake,
+    current_apr,
+    projected_annual_tbr,
+    yearly_fee_cost,
+    weighted_avg_apr,
+    median_apr,
+):
+    """
+    Export network profitability summary - the key metrics for tracking profitability over time
+    
+    Args:
+        current_network_stake: Current total network stake in TRB
+        current_apr: Current APR percentage at network stake level
+        projected_annual_tbr: Projected annual time-based rewards in TRB
+        yearly_fee_cost: Yearly fee cost in TRB
+        weighted_avg_apr: Weighted average APR of all reporters
+        median_apr: Median APR of all reporters
+    """
+    data_dir = ensure_data_directory()
+    filepath = os.path.join(data_dir, "network_profitability_summary.csv")
+    
+    file_exists = os.path.isfile(filepath)
+    
+    # Calculate net annual profitability
+    net_annual_profitability = projected_annual_tbr - yearly_fee_cost
+    
+    with open(filepath, 'a', newline='') as csvfile:
+        fieldnames = [
+            'timestamp',
+            'current_network_stake_trb',
+            'current_apr_percent',
+            'weighted_avg_apr_percent',
+            'median_apr_percent',
+            'projected_annual_tbr',
+            'yearly_fee_cost_trb',
+            'net_annual_profitability_trb'
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        if not file_exists:
+            writer.writeheader()
+        
+        writer.writerow({
+            'timestamp': datetime.now().isoformat(),
+            'current_network_stake_trb': f"{current_network_stake:.0f}",
+            'current_apr_percent': f"{current_apr:.1f}",
+            'weighted_avg_apr_percent': f"{weighted_avg_apr:.2f}",
+            'median_apr_percent': f"{median_apr:.2f}",
+            'projected_annual_tbr': f"{projected_annual_tbr:.0f}",
+            'yearly_fee_cost_trb': f"{yearly_fee_cost:.1f}",
+            'net_annual_profitability_trb': f"{net_annual_profitability:.0f}"
+        })
+
+
 def export_all_data(
     tbr_data,
     reporting_costs_data,
@@ -340,6 +395,17 @@ def export_all_data(
         stake_scenario_data: Dict with APR by total stake data
     """
     print("\nExporting data to CSV files...")
+    
+    # Export network profitability summary (the most important metrics)
+    export_network_profitability_summary(
+        stake_scenario_data['current_network_stake'],
+        stake_scenario_data['current_apr'],
+        tbr_data['projected_annual_tbr'],
+        reporting_costs_data['yearly_fee_cost'],
+        apr_data['weighted_avg_apr'],
+        apr_data['median_apr']
+    )
+    print("  ✓ Exported network profitability summary")
     
     # Export time-based rewards
     export_time_based_rewards(
