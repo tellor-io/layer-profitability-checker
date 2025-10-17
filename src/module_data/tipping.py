@@ -53,7 +53,11 @@ def get_current_tip(
     try:
         if rpc_client is not None and query_data:
             # Get the REST endpoint from RPC client
-            rest_endpoint = rpc_client.rpc_endpoint
+            if rpc_client.is_localhost:
+                # For localhost, REST API is typically on port 1317
+                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
+            else:
+                rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith("/rpc"):
                 rest_endpoint = rest_endpoint.replace("/rpc", "")
 
@@ -189,7 +193,11 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
             print("Warning: RPC client not provided for total tips query")
             return None
 
-        rest_endpoint = rpc_client.rpc_endpoint
+        if rpc_client.is_localhost:
+            # For localhost, REST API is typically on port 1317
+            rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
+        else:
+            rest_endpoint = rpc_client.rpc_endpoint
         if rest_endpoint.endswith("/rpc"):
             rest_endpoint = rest_endpoint.replace("/rpc", "")
         url = f"{rest_endpoint}/tellor-io/layer/oracle/get_tip_total"
@@ -252,7 +260,11 @@ def get_available_tips(
     try:
         if rpc_client is not None and selector_address:
             # Get the REST endpoint from RPC client
-            rest_endpoint = rpc_client.rpc_endpoint
+            if rpc_client.is_localhost:
+                # For localhost, REST API is typically on port 1317
+                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
+            else:
+                rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith("/rpc"):
                 rest_endpoint = rest_endpoint.replace("/rpc", "")
 

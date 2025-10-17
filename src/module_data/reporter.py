@@ -20,7 +20,11 @@ def get_reporters(
         # Use REST API to query reporters
         if rpc_client is not None:
             # Get the REST endpoint from RPC client
-            rest_endpoint = rpc_client.rpc_endpoint
+            if rpc_client.is_localhost:
+                # For localhost, REST API is typically on port 1317
+                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
+            else:
+                rest_endpoint = rpc_client.rpc_endpoint
             if rest_endpoint.endswith("/rpc"):
                 rest_endpoint = rest_endpoint.replace("/rpc", "")
 
