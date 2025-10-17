@@ -269,12 +269,12 @@ def main():
         "Projected Daily Rewards": f"~ {total_combined_avg * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
         "Projected Annual Rewards": f"~ {total_combined_avg * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
     }
-    
+
     # Add expected TBR info if using event-based data
     if tbr_data_source == "Event-based":
         expected_tbr_per_block = expected_avg_mint_amount
         total_rewards_data["Expected TBR Per Block"] = f"{expected_tbr_per_block:,.1f} loya"
-    
+
     print_info_box("total rewards", total_rewards_data, separators=[1,2,4])
 
     # Display Inflationary Rewards stats (TBR only)
@@ -419,7 +419,7 @@ def main():
 
     # Use combined rewards for profitability calculations
     avg_combined_mint_amount = total_combined_avg  # This includes both TBR and extra rewards
-    
+
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
     avg_profit_per_block = (

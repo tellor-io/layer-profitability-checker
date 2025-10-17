@@ -356,7 +356,7 @@ def query_mint_events(
                 for event in finalize_block_events:
                     event_type = event.get("type")
                     attributes = event.get("attributes", [])
-                    
+
                     # Handle inflationary rewards distributed (normal TBR)
                     if event_type == "inflationary_rewards_distributed":
                         amount_str = None
@@ -364,7 +364,7 @@ def query_mint_events(
                             if attr.get("key") == "amount":
                                 amount_str = attr.get("value", "")
                                 break
-                        
+
                         if amount_str:
                             # Parse amount (format: "123456loya")
                             if amount_str.endswith("loya"):
@@ -381,7 +381,7 @@ def query_mint_events(
                                 print(
                                     f"Found TBR event at height {height}: {amount_str}"
                                 )
-                    
+
                     # Handle extra rewards distributed
                     elif event_type == "extra_rewards_distributed":
                         amount_str = None
@@ -389,7 +389,7 @@ def query_mint_events(
                             if attr.get("key") == "amount":
                                 amount_str = attr.get("value", "")
                                 break
-                        
+
                         if amount_str:
                             # Parse amount (format: "123456loya")
                             if amount_str.endswith("loya"):
