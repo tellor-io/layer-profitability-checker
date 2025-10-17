@@ -326,8 +326,8 @@ def query_mint_events(
     start_height=None, end_height=None, rpc_endpoint=None, rpc_client=None
 ):
     """
-    Query mint_coins events from recent blocks using CometBFT RPC
-    Returns dict with total minted amount and event details
+    Query mint events from recent blocks using CometBFT RPC
+    Returns dict with total minted amounts and event details for both TBR and extra rewards
     """
     if rpc_client is not None:
         # Use unified RPC client
@@ -341,8 +341,10 @@ def query_mint_events(
 
         print(f"Querying mint events from blocks {start_height} to {end_height}...")
 
-        total_minted = 0
-        mint_events = []
+        total_tbr_minted = 0
+        total_extra_rewards = 0
+        tbr_events = []
+        extra_rewards_events = []
 
         for height in range(start_height, end_height + 1):
             try:
@@ -352,35 +354,57 @@ def query_mint_events(
                 finalize_block_events = block_results.get("finalize_block_events", [])
 
                 for event in finalize_block_events:
-                    if event.get("type") == "mint_coins":
-                        # Extract amount from attributes
-                        attributes = event.get("attributes", [])
+                    event_type = event.get("type")
+                    attributes = event.get("attributes", [])
+                    
+                    # Handle inflationary rewards distributed (normal TBR)
+                    if event_type == "inflationary_rewards_distributed":
                         amount_str = None
-                        destination = None
-
                         for attr in attributes:
                             if attr.get("key") == "amount":
                                 amount_str = attr.get("value", "")
-                            elif attr.get("key") == "destination":
-                                destination = attr.get("value", "")
-
-                        if (
-                            amount_str and destination == "mint"
-                        ):  # Changed from 'oracle' to 'mint'
+                                break
+                        
+                        if amount_str:
                             # Parse amount (format: "123456loya")
                             if amount_str.endswith("loya"):
                                 amount = int(amount_str[:-4])  # Remove 'loya' suffix
-                                total_minted += amount
-                                mint_events.append(
+                                total_tbr_minted += amount
+                                tbr_events.append(
                                     {
                                         "height": height,
                                         "amount": amount,
                                         "amount_str": amount_str,
-                                        "destination": destination,
+                                        "event_type": "inflationary_rewards_distributed",
                                     }
                                 )
                                 print(
-                                    f"Found mint event at height {height}: {amount_str}"
+                                    f"Found TBR event at height {height}: {amount_str}"
+                                )
+                    
+                    # Handle extra rewards distributed
+                    elif event_type == "extra_rewards_distributed":
+                        amount_str = None
+                        for attr in attributes:
+                            if attr.get("key") == "amount":
+                                amount_str = attr.get("value", "")
+                                break
+                        
+                        if amount_str:
+                            # Parse amount (format: "123456loya")
+                            if amount_str.endswith("loya"):
+                                amount = int(amount_str[:-4])  # Remove 'loya' suffix
+                                total_extra_rewards += amount
+                                extra_rewards_events.append(
+                                    {
+                                        "height": height,
+                                        "amount": amount,
+                                        "amount_str": amount_str,
+                                        "event_type": "extra_rewards_distributed",
+                                    }
+                                )
+                                print(
+                                    f"Found extra rewards event at height {height}: {amount_str}"
                                 )
 
             except Exception as e:
@@ -388,9 +412,14 @@ def query_mint_events(
                 continue
 
         return {
-            "total_minted": total_minted,
-            "events": mint_events,
-            "event_count": len(mint_events),
+            "total_tbr_minted": total_tbr_minted,
+            "total_extra_rewards": total_extra_rewards,
+            "total_combined_rewards": total_tbr_minted + total_extra_rewards,
+            "tbr_events": tbr_events,
+            "extra_rewards_events": extra_rewards_events,
+            "tbr_event_count": len(tbr_events),
+            "extra_rewards_event_count": len(extra_rewards_events),
+            "total_event_count": len(tbr_events) + len(extra_rewards_events),
         }
 
     else:

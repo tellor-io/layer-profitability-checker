@@ -167,7 +167,7 @@ def main():
     print_info_box("block time stats", block_data, separators=[3])
 
     # get mint amount from events and expected calculation
-    print_section_header("TIME BASED REWARDS")
+    print_section_header("REWARDS DISTRIBUTION")
 
     # Query mint events from recent blocks
     mint_events_data = query_mint_events(rpc_client=rpc_client)
@@ -177,57 +177,127 @@ def main():
     expected_mint_amount = minter.calculate_block_provision(time_diff)
     expected_avg_mint_amount = expected_mint_amount / block_diff
 
-    # Use event-based data if available, otherwise fall back to expected
-    if mint_events_data and mint_events_data["total_minted"] > 0:
-        event_mint_amount = mint_events_data["total_minted"]
-        event_avg_mint_amount = (
-            event_mint_amount / mint_events_data["event_count"]
-            if mint_events_data["event_count"] > 0
-            else 0
-        )
+    # Extract TBR and extra rewards data
+    tbr_mint_amount = 0
+    extra_rewards_amount = 0
+    tbr_avg_mint_amount = 0
+    extra_rewards_avg_amount = 0
+    tbr_data_source = "No events found"
+    extra_rewards_data_source = "No events found"
 
-        # Sanity check: compare event-based vs expected (per block)
-        expected_per_block = expected_mint_amount / block_diff
-        if (
-            abs(event_avg_mint_amount - expected_per_block) > 100
-        ):  # Allow 100 loya tolerance
-            print(
-                colored(
-                    "  ⚠️  Current time based rewards amount is different from expected",
-                    "yellow",
-                    attrs=["bold"],
+    if mint_events_data:
+        # Handle TBR (Time Based Rewards)
+        if mint_events_data["total_tbr_minted"] > 0:
+            tbr_mint_amount = mint_events_data["total_tbr_minted"]
+            tbr_avg_mint_amount = (
+                tbr_mint_amount / mint_events_data["tbr_event_count"]
+                if mint_events_data["tbr_event_count"] > 0
+                else 0
+            )
+            tbr_data_source = "Event-based"
+        else:
+            # Fall back to expected TBR calculation
+            tbr_mint_amount = expected_mint_amount
+            tbr_avg_mint_amount = expected_avg_mint_amount
+            tbr_data_source = "Expected calculation"
+
+        # Handle Extra Rewards
+        if mint_events_data["total_extra_rewards"] > 0:
+            extra_rewards_amount = mint_events_data["total_extra_rewards"]
+            extra_rewards_avg_amount = (
+                extra_rewards_amount / mint_events_data["extra_rewards_event_count"]
+                if mint_events_data["extra_rewards_event_count"] > 0
+                else 0
+            )
+            extra_rewards_data_source = "Event-based"
+        else:
+            extra_rewards_amount = 0
+            extra_rewards_avg_amount = 0
+            extra_rewards_data_source = "No events found"
+
+        # Sanity check: compare TBR event-based vs expected (per block)
+        if tbr_data_source == "Event-based":
+            expected_per_block = expected_mint_amount / block_diff
+            if (
+                abs(tbr_avg_mint_amount - expected_per_block) > 100
+            ):  # Allow 100 loya tolerance
+                print(
+                    colored(
+                        "  ⚠️  Current TBR amount is different from expected",
+                        "yellow",
+                        attrs=["bold"],
+                    )
                 )
-            )
-            print(f"     Event-based: {event_avg_mint_amount:,.1f} loya per block")
-            print(f"     Expected:    {expected_per_block:,.1f} loya per block")
-            print(
-                f"     Difference:  {abs(event_avg_mint_amount - expected_per_block):,.1f} loya per block"
-            )
-
-        # Use event-based data for calculations
-        mint_amount = event_mint_amount
-        avg_mint_amount = event_avg_mint_amount
-        data_source = "Event-based"
+                print(f"     Event-based: {tbr_avg_mint_amount:,.1f} loya per block")
+                print(f"     Expected:    {expected_per_block:,.1f} loya per block")
+                print(
+                    f"     Difference:  {abs(tbr_avg_mint_amount - expected_per_block):,.1f} loya per block"
+                )
     else:
+        # No events data available, use expected calculation
         print(
             colored(
-                "  ⚠️  No mint events found, using expected calculation",
+                "  ⚠️  No mint events found, using expected TBR calculation",
                 "yellow",
                 attrs=["bold"],
             )
         )
-        mint_amount = expected_mint_amount
-        avg_mint_amount = expected_avg_mint_amount
-        data_source = "Expected calculation"
+        print(
+            colored(
+                "  ℹ️  Extra rewards will show as 0 (no events found)",
+                "blue",
+                attrs=["bold"],
+            )
+        )
+        tbr_mint_amount = expected_mint_amount
+        tbr_avg_mint_amount = expected_avg_mint_amount
+        tbr_data_source = "Expected calculation"
+        extra_rewards_amount = 0
+        extra_rewards_avg_amount = 0
+        extra_rewards_data_source = "No events found"
 
-    mint_data = {
-        "Data Source": data_source,
-        "Total TBR from Sample Period": f"{mint_amount * 1e-6:,.2f} TRB",
-        "Average TBR Per Block": f"{avg_mint_amount:,.1f} loya",
-        "Projected Daily TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
-        "Projected Annual TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+    # Calculate combined rewards
+    total_combined_rewards = tbr_mint_amount + extra_rewards_amount
+    total_combined_avg = tbr_avg_mint_amount + extra_rewards_avg_amount
+
+    # Display Total Rewards stats (combined)
+    total_rewards_data = {
+        "Total Rewards": " ",
+        "Data Source": "Event-based" if (tbr_data_source == "Event-based" or extra_rewards_data_source == "Event-based") else "Expected calculation",
+        "Total Rewards from Sample Period": f"{total_combined_rewards * 1e-6:,.2f} TRB",
+        "Average Rewards Per Block": f"{total_combined_avg:,.1f} loya",
+        "Projected Daily Rewards": f"~ {total_combined_avg * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+        "Projected Annual Rewards": f"~ {total_combined_avg * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
     }
-    print_info_box("minting stats", mint_data, separators=[2])
+    
+    # Add expected TBR info if using event-based data
+    if tbr_data_source == "Event-based":
+        expected_tbr_per_block = expected_avg_mint_amount
+        total_rewards_data["Expected TBR Per Block"] = f"{expected_tbr_per_block:,.1f} loya"
+    
+    print_info_box("total rewards", total_rewards_data, separators=[1,2,4])
+
+    # Display Inflationary Rewards stats (TBR only)
+    inflationary_rewards_data = {
+        "Inflationary Rewards": " ",
+        "Data Source": tbr_data_source,
+        "Total Inflationary Rewards from Sample Period": f"{tbr_mint_amount * 1e-6:,.2f} TRB",
+        "Average Inflationary Rewards Per Block": f"{tbr_avg_mint_amount:,.1f} loya",
+        "Projected Daily Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+        "Projected Annual Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+    }
+    print_info_box("inflationary rewards", inflationary_rewards_data, separators=[1,2,4])
+
+    # Display Extra Rewards stats
+    extra_rewards_data = {
+        "Extra Rewards": " ",
+        "Data Source": extra_rewards_data_source,
+        "Total Extra Rewards from Sample Period": f"{extra_rewards_amount * 1e-6:,.2f} TRB",
+        "Average Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
+        "Projected Daily Extra Rewards": f"~ {extra_rewards_avg_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+        "Projected Annual Extra Rewards": f"~ {extra_rewards_avg_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+    }
+    print_info_box("extra rewards", extra_rewards_data, separators=[1,2,4])
 
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
@@ -347,13 +417,16 @@ def main():
 
     print_info_box("stake distribution repeat", stake_summary, separators=[])
 
+    # Use combined rewards for profitability calculations
+    avg_combined_mint_amount = total_combined_avg  # This includes both TBR and extra rewards
+    
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
     avg_profit_per_block = (
-        (avg_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+        (avg_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
     ) * 1e-6
     median_profit_per_block = (
-        (median_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+        (median_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
     ) * 1e-6
 
     # Time-based projections
@@ -389,7 +462,7 @@ def main():
 
     # Calculate and display break-even stake
     break_even_stake, break_even_mult = calculate_break_even_stake(
-        total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
+        total_tokens_active, avg_combined_mint_amount, avg_fee, avg_block_time, median_stake
     )
     if break_even_stake:
         break_even_data = {
@@ -398,14 +471,14 @@ def main():
         print_info_box("break-even analysis", break_even_data)
 
     # Convert loya to TRB for APR calculations
-    avg_mint_amount_trb = avg_mint_amount * 1e-6
+    avg_combined_mint_amount_trb = avg_combined_mint_amount * 1e-6
     avg_fee_trb = avg_fee * 1e-6
 
     # Generate APR chart
     print("Generated current_apr_chart.png")
     generate_apr_chart(
         total_tokens_active,
-        avg_mint_amount_trb,
+        avg_combined_mint_amount_trb,
         avg_fee_trb,
         avg_block_time,
         median_stake,
@@ -416,7 +489,7 @@ def main():
     # Calculate and display individual reporter APRs
     print_section_header("CURRENT REPORTER APRs")
     reporter_aprs = calculate_reporter_aprs(
-        reporters, total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
+        reporters, total_tokens_active, avg_combined_mint_amount_trb, avg_fee_trb, avg_block_time
     )
 
     # Display both weighted average and median APRs in info box
@@ -436,7 +509,7 @@ def main():
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
     stake_results, targets = run_scenarios_analysis(
-        total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
+        total_tokens_active, avg_combined_mint_amount_trb, avg_fee_trb, avg_block_time
     )
 
     # Display target APR points in info box with current APR
