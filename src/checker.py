@@ -16,6 +16,7 @@ from .chain_data.tx_data import (
     query_mint_events,
     query_recent_reports,
 )
+from .csv_export import export_all_data
 from .display_helpers import (
     print_box_and_whisker,
     print_distribution_chart,
@@ -536,6 +537,75 @@ def main():
         targets, total_tokens_active, stake_results
     )
     print_info_box("APR target points", target_display, separators=[2])
+
+    # Calculate current APR for CSV export
+    import numpy as np
+    stake_amounts_trb = stake_results["stake_amounts_trb"]
+    aprs = stake_results["weighted_avg_aprs"]
+    current_apr = np.interp(total_tokens_active, stake_amounts_trb, aprs)
+
+    # Prepare data for CSV export
+    tbr_data = {
+        'data_source': data_source,
+        'total_tbr_sample': mint_amount * 1e-6,
+        'avg_tbr_per_block': avg_mint_amount,
+        'projected_daily_tbr': avg_mint_amount * (86400 / avg_block_time) * 1e-6,
+        'projected_annual_tbr': avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6
+    }
+
+    reporting_costs_data = {
+        'avg_gas_wanted': analysis.get('avg_gas_wanted', 0),
+        'avg_gas_used': analysis.get('avg_gas_used', 0),
+        'min_gas_price': min_gas_price,
+        'avg_gas_cost': analysis.get('avg_min_cost', 0),
+        'avg_fee_paid': avg_fee,
+        'blocks_per_day': blocks_per_day,
+        'reports_per_day': reports_per_day,
+        'daily_fee_cost': daily_fee_cost_trb,
+        'monthly_fee_cost': monthly_fee_cost_trb,
+        'yearly_fee_cost': yearly_fee_cost_trb
+    }
+
+    user_tips_data = {
+        'total_tips_all_time': total_tips if total_tips is not None else 0,
+        'user_tip_totals': user_tip_totals if user_tip_totals else []
+    }
+
+    profitability_data = {
+        'avg_stake_per_block': avg_profit_per_block,
+        'avg_stake_per_minute': avg_profit_1min,
+        'avg_stake_per_hour': avg_profit_1hour,
+        'avg_stake_per_day': avg_profit_1day,
+        'avg_stake_per_month': avg_profit_1day * 30,
+        'avg_stake_per_year': avg_profit_1day * 365,
+        'median_stake_per_block': median_profit_per_block,
+        'median_stake_per_minute': median_profit_1min,
+        'median_stake_per_hour': median_profit_1hour,
+        'median_stake_per_day': median_profit_1day,
+        'median_stake_per_month': median_profit_1day * 30,
+        'median_stake_per_year': median_profit_1day * 365
+    }
+
+    apr_data = {
+        'weighted_avg_apr': weighted_avg_apr,
+        'median_apr': median_apr
+    }
+
+    stake_scenario_data = {
+        'current_network_stake': total_tokens_active,
+        'current_apr': current_apr,
+        'stake_results': stake_results
+    }
+
+    # Export all data to CSV files
+    export_all_data(
+        tbr_data,
+        reporting_costs_data,
+        user_tips_data,
+        profitability_data,
+        apr_data,
+        stake_scenario_data
+    )
 
     print_section_header("END")
 
