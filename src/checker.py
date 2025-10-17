@@ -263,7 +263,12 @@ def main():
     # Display Total Rewards stats (combined)
     total_rewards_data = {
         "Total Rewards": " ",
-        "Data Source": "Event-based" if (tbr_data_source == "Event-based" or extra_rewards_data_source == "Event-based") else "Expected calculation",
+        "Data Source": "Event-based"
+        if (
+            tbr_data_source == "Event-based"
+            or extra_rewards_data_source == "Event-based"
+        )
+        else "Expected calculation",
         "Total Rewards from Sample Period": f"{total_combined_rewards * 1e-6:,.2f} TRB",
         "Average Rewards Per Block": f"{total_combined_avg:,.1f} loya",
         "Projected Daily Rewards": f"~ {total_combined_avg * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
@@ -273,9 +278,11 @@ def main():
     # Add expected TBR info if using event-based data
     if tbr_data_source == "Event-based":
         expected_tbr_per_block = expected_avg_mint_amount
-        total_rewards_data["Expected TBR Per Block"] = f"{expected_tbr_per_block:,.1f} loya"
+        total_rewards_data["Expected TBR Per Block"] = (
+            f"{expected_tbr_per_block:,.1f} loya"
+        )
 
-    print_info_box("total rewards", total_rewards_data, separators=[1,2,4])
+    print_info_box("total rewards", total_rewards_data, separators=[1, 2, 4])
 
     # Display Inflationary Rewards stats (TBR only)
     inflationary_rewards_data = {
@@ -286,7 +293,9 @@ def main():
         "Projected Daily Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
         "Projected Annual Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
     }
-    print_info_box("inflationary rewards", inflationary_rewards_data, separators=[1,2,4])
+    print_info_box(
+        "inflationary rewards", inflationary_rewards_data, separators=[1, 2, 4]
+    )
 
     # Display Extra Rewards stats
     extra_rewards_data = {
@@ -297,7 +306,7 @@ def main():
         "Projected Daily Extra Rewards": f"~ {extra_rewards_avg_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
         "Projected Annual Extra Rewards": f"~ {extra_rewards_avg_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
     }
-    print_info_box("extra rewards", extra_rewards_data, separators=[1,2,4])
+    print_info_box("extra rewards", extra_rewards_data, separators=[1, 2, 4])
 
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
@@ -418,7 +427,9 @@ def main():
     print_info_box("stake distribution repeat", stake_summary, separators=[])
 
     # Use combined rewards for profitability calculations
-    avg_combined_mint_amount = total_combined_avg  # This includes both TBR and extra rewards
+    avg_combined_mint_amount = (
+        total_combined_avg  # This includes both TBR and extra rewards
+    )
 
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
@@ -462,7 +473,11 @@ def main():
 
     # Calculate and display break-even stake
     break_even_stake, break_even_mult = calculate_break_even_stake(
-        total_tokens_active, avg_combined_mint_amount, avg_fee, avg_block_time, median_stake
+        total_tokens_active,
+        avg_combined_mint_amount,
+        avg_fee,
+        avg_block_time,
+        median_stake,
     )
     if break_even_stake:
         break_even_data = {
@@ -489,7 +504,11 @@ def main():
     # Calculate and display individual reporter APRs
     print_section_header("CURRENT REPORTER APRs")
     reporter_aprs = calculate_reporter_aprs(
-        reporters, total_tokens_active, avg_combined_mint_amount_trb, avg_fee_trb, avg_block_time
+        reporters,
+        total_tokens_active,
+        avg_combined_mint_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
     )
 
     # Display both weighted average and median APRs in info box
