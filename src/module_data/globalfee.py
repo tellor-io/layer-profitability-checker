@@ -19,7 +19,10 @@ def get_min_gas_price(rpc_client=None, config=None):
         # Try multiple approaches to query global fee
         try:
             # Approach 1: Query global fee using Cosmos SDK REST API
-            if rpc_client.rpc_endpoint.endswith("/rpc"):
+            if rpc_client.is_localhost:
+                # For localhost, REST API is typically on port 1317
+                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
+            elif rpc_client.rpc_endpoint.endswith("/rpc"):
                 rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
             else:
                 rest_endpoint = rpc_client.rpc_endpoint
