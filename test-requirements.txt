@@ -1,0 +1,21 @@
+"""Test requirements for profitability checker."""
+
+# Testing framework
+pytest>=7.0.0
+pytest-mock>=3.10.0
+pytest-cov>=4.0.0
+
+# Mocking and test utilities
+unittest-mock>=1.0.1
+
+# For testing matplotlib plots
+matplotlib>=3.5.0
+
+# For testing numpy operations
+numpy>=1.21.0
+
+# For testing YAML configs
+PyYAML>=6.0
+
+# For testing colored output
+termcolor>=2.0.0
