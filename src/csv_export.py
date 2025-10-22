@@ -16,7 +16,9 @@ def ensure_data_directory():
 def export_time_based_rewards(
     data_source,
     total_tbr_sample,
-    avg_tbr_per_block,
+    num_blocks_sampled,
+    avg_inflationary_rewards_per_block,
+    avg_extra_rewards_per_block,
     projected_daily_tbr,
     projected_annual_tbr,
 ):
@@ -26,7 +28,9 @@ def export_time_based_rewards(
     Args:
         data_source: Source of the data (e.g., "Event-based")
         total_tbr_sample: Total TBR from sample period in TRB
-        avg_tbr_per_block: Average TBR per block in loya
+        num_blocks_sampled: Number of blocks sampled for the analysis
+        avg_inflationary_rewards_per_block: Average inflationary rewards per block in loya
+        avg_extra_rewards_per_block: Average extra rewards per block in loya
         projected_daily_tbr: Projected daily TBR in TRB
         projected_annual_tbr: Projected annual TBR in TRB
     """
@@ -40,10 +44,12 @@ def export_time_based_rewards(
         fieldnames = [
             "timestamp",
             "data_source",
-            "total_tbr_sample_trb",
-            "avg_tbr_per_block_loya",
-            "projected_daily_tbr",
-            "projected_annual_tbr",
+            "total_tbr_sample_window_(trb)",
+            "num_blocks_sampled",
+            "inflationary_rewards_per_block_(loya)",
+            "extra_rewards_per_block_(loya)",
+            "projected_daily_tbr_(trb)",
+            "projected_annual_tbr_(trb)",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -54,10 +60,12 @@ def export_time_based_rewards(
             {
                 "timestamp": datetime.now().isoformat(),
                 "data_source": data_source,
-                "total_tbr_sample_trb": f"{total_tbr_sample:.2f}",
-                "avg_tbr_per_block_loya": f"{avg_tbr_per_block:.1f}",
-                "projected_daily_tbr": f"{projected_daily_tbr:.0f}",
-                "projected_annual_tbr": f"{projected_annual_tbr:.0f}",
+                "total_tbr_sample_window_(trb)": f"{total_tbr_sample:.2f}",
+                "num_blocks_sampled": f"{num_blocks_sampled}",
+                "inflationary_rewards_per_block_(loya)": f"{avg_inflationary_rewards_per_block:.1f}",
+                "extra_rewards_per_block_(loya)": f"{avg_extra_rewards_per_block:.1f}",
+                "projected_daily_tbr_(trb)": f"{projected_daily_tbr:.0f}",
+                "projected_annual_tbr_(trb)": f"{projected_annual_tbr:.0f}",
             }
         )
 
@@ -418,7 +426,9 @@ def export_all_data(
     export_time_based_rewards(
         tbr_data["data_source"],
         tbr_data["total_tbr_sample"],
-        tbr_data["avg_tbr_per_block"],
+        tbr_data["num_blocks_sampled"],
+        tbr_data["avg_inflationary_rewards_per_block"],
+        tbr_data["avg_extra_rewards_per_block"],
         tbr_data["projected_daily_tbr"],
         tbr_data["projected_annual_tbr"],
     )
