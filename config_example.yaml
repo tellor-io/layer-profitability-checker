@@ -1,4 +1,4 @@
-# RPC endpoint for mint events query (defaults to localhost if not specified)
+# RPC endpoint for layer queries(defaults to localhost if not specified)
 # rpc_endpoint: http://localhost:26657
 # rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
 # rpc_endpoint: https://mainnet.tellorlayer.com/rpc
