@@ -135,8 +135,6 @@ def main():
     extra_rewards_amount = 0
     tbr_avg_mint_amount = 0
     extra_rewards_avg_amount = 0
-    tbr_data_source = "No events found"
-    extra_rewards_data_source = "No events found"
 
     # Check if any events were found
     has_any_events = mint_events_data and (
@@ -166,11 +164,9 @@ def main():
                 if mint_events_data["tbr_event_count"] > 0
                 else 0
             )
-            tbr_data_source = "Event-based"
         else:
             tbr_mint_amount = 0
             tbr_avg_mint_amount = 0
-            tbr_data_source = "No events found"
             print(
                 colored(
                     "  ⚠️  No base rewards events found in recent blocks",
@@ -187,11 +183,9 @@ def main():
                 if mint_events_data["extra_rewards_event_count"] > 0
                 else 0
             )
-            extra_rewards_data_source = "Event-based"
         else:
             extra_rewards_amount = 0
             extra_rewards_avg_amount = 0
-            extra_rewards_data_source = "No events found"
 
         # calculate combined rewards
         total_combined_rewards = tbr_mint_amount + extra_rewards_amount
