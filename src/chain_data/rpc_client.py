@@ -90,7 +90,10 @@ class TellorRPCClient:
         """Get validator set using Cosmos SDK REST API."""
         # Use the Cosmos SDK REST API instead of CometBFT RPC
         # Convert RPC endpoint to REST API endpoint
-        if self.rpc_endpoint.endswith("/rpc"):
+        if self.is_localhost:
+            # For localhost, REST API is typically on port 1317
+            rest_endpoint = self.rpc_endpoint.replace(":26657", ":1317")
+        elif self.rpc_endpoint.endswith("/rpc"):
             rest_endpoint = self.rpc_endpoint.replace("/rpc", "")
         else:
             rest_endpoint = self.rpc_endpoint
