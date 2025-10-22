@@ -15,11 +15,6 @@ from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_recent_reports,
 )
-from .rewards import (
-    calculate_extra_rewards_duration,
-    get_extra_rewards_pool_info,
-    query_mint_events,
-)
 from .csv_export import export_all_data
 from .display_helpers import (
     print_box_and_whisker,
@@ -40,6 +35,11 @@ from .module_data.tipping import (
     get_available_tips,
     get_tipping_summary,
     get_total_tips,
+)
+from .rewards import (
+    calculate_extra_rewards_duration,
+    get_extra_rewards_pool_info,
+    query_mint_events,
 )
 from .scenarios import format_targets_for_display_with_apr, run_scenarios_analysis
 
@@ -140,10 +140,13 @@ def main():
 
     # Check if any events were found
     has_any_events = mint_events_data and (
-        mint_events_data["total_tbr_minted"] > 0 or mint_events_data["total_extra_rewards"] > 0
+        mint_events_data["total_tbr_minted"] > 0
+        or mint_events_data["total_extra_rewards"] > 0
     )
     has_tbr_events = mint_events_data and mint_events_data["total_tbr_minted"] > 0
-    has_extra_rewards_events = mint_events_data and mint_events_data["total_extra_rewards"] > 0
+    has_extra_rewards_events = (
+        mint_events_data and mint_events_data["total_extra_rewards"] > 0
+    )
 
     if not has_any_events:
         # No events found - just show message
@@ -219,20 +222,21 @@ def main():
     # Always query and display extra rewards pool information
     print("\nQuerying extra rewards pool module account...")
     pool_info = get_extra_rewards_pool_info(rpc_client)
-    
+
     if pool_info:
         # Display combined pool information and duration estimates
         if has_extra_rewards_events:
             extra_rewards_avg_amount = (
-                mint_events_data["total_extra_rewards"] / mint_events_data["extra_rewards_event_count"]
+                mint_events_data["total_extra_rewards"]
+                / mint_events_data["extra_rewards_event_count"]
                 if mint_events_data["extra_rewards_event_count"] > 0
                 else 0
             )
-            
+
             blocks_remaining, days, hours, minutes = calculate_extra_rewards_duration(
                 extra_rewards_avg_amount, pool_info["balance_loya"], avg_block_time
             )
-            
+
             # Display combined pool information with duration estimates
             pool_data = {
                 "Extra Rewards Pool": " ",
@@ -241,7 +245,7 @@ def main():
                 "Current Balance": f"{pool_info['balance_loya']:,.0f} loya",
                 "Avg Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
                 "Estimated Blocks Remaining": f"{blocks_remaining:,}",
-                "Estimated Time Remaining": f"{days:.1f} days, {hours:.1f} hours, {minutes:.1f} minutes"
+                "Estimated Time Remaining": f"{days:.1f} days, {hours:.1f} hours, {minutes:.1f} minutes",
             }
             print_info_box("extra rewards pool", pool_data, separators=[1, 2])
         else:
@@ -250,7 +254,7 @@ def main():
                 "Extra Rewards Pool": " ",
                 "Module Account": pool_info["account_name"],
                 "Address": pool_info["address"],
-                "Current Balance": f"{pool_info['balance_loya']:,.0f} loya"
+                "Current Balance": f"{pool_info['balance_loya']:,.0f} loya",
             }
             print_info_box("extra rewards pool", pool_data, separators=[1, 2, 4])
     else:
@@ -282,7 +286,11 @@ def main():
             "Expected Daily Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
             "Expected Annual Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
         }
-        print_info_box("expected inflationary rewards", expected_inflationary_data, separators=[1,2])
+        print_info_box(
+            "expected inflationary rewards",
+            expected_inflationary_data,
+            separators=[1, 2],
+        )
 
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
@@ -405,7 +413,9 @@ def main():
     # Use combined rewards for profitability calculations
     # If no events found, use expected calculation for profitability
     if has_any_events:
-        avg_combined_mint_amount = total_combined_avg  # This includes both TBR and extra rewards
+        avg_combined_mint_amount = (
+            total_combined_avg  # This includes both TBR and extra rewards
+        )
     else:
         avg_combined_mint_amount = expected_avg_mint_amount  # Use expected TBR only
 
@@ -533,10 +543,10 @@ def main():
         csv_total_sample = expected_mint_amount * 1e-6
         csv_avg_inflationary_per_block = 0
         csv_avg_extra_per_block = 0  # No extra rewards in expected calculation
-    
+
     # Calculate projected values based on combined rewards
     total_avg_per_block = csv_avg_inflationary_per_block + csv_avg_extra_per_block
-    
+
     tbr_data = {
         "data_source": csv_data_source,
         "total_tbr_sample": csv_total_sample,
@@ -544,7 +554,10 @@ def main():
         "avg_inflationary_rewards_per_block": csv_avg_inflationary_per_block,
         "avg_extra_rewards_per_block": csv_avg_extra_per_block,
         "projected_daily_tbr": total_avg_per_block * (86400 / avg_block_time) * 1e-6,
-        "projected_annual_tbr": total_avg_per_block * (86400 / avg_block_time) * 365 * 1e-6,
+        "projected_annual_tbr": total_avg_per_block
+        * (86400 / avg_block_time)
+        * 365
+        * 1e-6,
     }
 
     reporting_costs_data = {
@@ -600,8 +613,9 @@ def main():
 
     print_section_header("END")
 
+
 def print_welcome_message():
-        # Welcome message with ASCII art night sky - green and bold
+    # Welcome message with ASCII art night sky - green and bold
     print("\n" + colored("┌" + "═" * 78 + "┐", "green", attrs=["bold"]))
     print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
     print(
@@ -653,6 +667,7 @@ def print_welcome_message():
     )
     print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
     print(colored("└" + "═" * 78 + "┘", "green", attrs=["bold"]))
+
 
 if __name__ == "__main__":
     main()

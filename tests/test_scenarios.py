@@ -1,12 +1,12 @@
 """Tests for scenarios and stake calculations."""
 
 import pytest
-import numpy as np
+
 from src.scenarios import (
-    simulate_validator_set,
     calculate_weighted_avg_apr_scenario,
     find_apr_targets,
-    format_targets_for_display_with_apr
+    format_targets_for_display_with_apr,
+    simulate_validator_set,
 )
 
 
@@ -17,9 +17,11 @@ class TestScenarios:
         """Test uniform validator set simulation."""
         total_stake = 10000000000  # 10k TRB in loya
         num_validators = 10
-        
-        validator_stakes = simulate_validator_set(total_stake, num_validators, "uniform")
-        
+
+        validator_stakes = simulate_validator_set(
+            total_stake, num_validators, "uniform"
+        )
+
         assert len(validator_stakes) == 10
         assert all(stake == total_stake / num_validators for stake in validator_stakes)
         assert sum(validator_stakes) == total_stake
@@ -28,16 +30,18 @@ class TestScenarios:
         """Test validator set respects 100 validator limit."""
         total_stake = 10000000000
         num_validators = 150  # More than 100
-        
-        validator_stakes = simulate_validator_set(total_stake, num_validators, "uniform")
-        
+
+        validator_stakes = simulate_validator_set(
+            total_stake, num_validators, "uniform"
+        )
+
         assert len(validator_stakes) == 100  # Should be capped at 100
 
     def test_simulate_validator_set_invalid_distribution(self):
         """Test invalid stake distribution raises error."""
         total_stake = 10000000000
         num_validators = 10
-        
+
         with pytest.raises(ValueError, match="Invalid stake_distribution"):
             simulate_validator_set(total_stake, num_validators, "invalid")
 
@@ -50,9 +54,13 @@ class TestScenarios:
         avg_block_time = 6.0
 
         apr = calculate_weighted_avg_apr_scenario(
-            validator_stakes, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+            validator_stakes,
+            total_tokens_active,
+            avg_mint_amount,
+            avg_fee,
+            avg_block_time,
         )
-        
+
         # APR could be negative if fees are too high, just check it's a number
         assert isinstance(apr, (int, float))
 
@@ -67,10 +75,15 @@ class TestScenarios:
         avg_block_time = 6.0
 
         targets = find_apr_targets(
-            stake_amounts_trb, aprs, target_aprs, total_tokens_active,
-            avg_mint_amount, avg_fee, avg_block_time
+            stake_amounts_trb,
+            aprs,
+            target_aprs,
+            total_tokens_active,
+            avg_mint_amount,
+            avg_fee,
+            avg_block_time,
         )
-        
+
         assert isinstance(targets, dict)
         # Should have some targets if APR is reasonable
         if targets:
@@ -82,18 +95,18 @@ class TestScenarios:
         targets = {
             "53.6% APR": {"stake_trb": 100000, "actual_apr": 53.6},
             "5.4% APR": {"stake_trb": 1000000, "actual_apr": 5.4},
-            "26.8% APR": {"stake_trb": 200000, "actual_apr": 26.8}
+            "26.8% APR": {"stake_trb": 200000, "actual_apr": 26.8},
         }
         current_total_stake = 20224000  # ~20k TRB
         stake_results = {
             "stake_amounts_trb": [50000, 100000, 200000, 500000, 1000000],
-            "weighted_avg_aprs": [100.0, 50.0, 25.0, 10.0, 5.0]
+            "weighted_avg_aprs": [100.0, 50.0, 25.0, 10.0, 5.0],
         }
 
         display_dict = format_targets_for_display_with_apr(
             targets, current_total_stake, stake_results
         )
-        
+
         assert isinstance(display_dict, dict)
         assert "Current Network Stake" in display_dict
         # Should have current APR entry

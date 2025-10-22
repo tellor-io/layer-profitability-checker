@@ -89,7 +89,6 @@ def query_mint_events(
                 print(f"Error querying mint events at height {height}: {e}")
                 continue
 
-
         return {
             "total_tbr_minted": total_tbr_minted,
             "total_extra_rewards": total_extra_rewards,
@@ -105,7 +104,9 @@ def query_mint_events(
         raise Exception("RPC client is required - layerd binary fallback is disabled")
 
 
-def get_extra_rewards_pool_account(rpc_client: TellorRPCClient) -> Optional[Dict[str, Any]]:
+def get_extra_rewards_pool_account(
+    rpc_client: TellorRPCClient,
+) -> Optional[Dict[str, Any]]:
     """
     Query the extra rewards pool module account information.
     Returns dict with account details or None if query fails.
@@ -117,9 +118,9 @@ def get_extra_rewards_pool_account(rpc_client: TellorRPCClient) -> Optional[Dict
         rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
     else:
         rest_endpoint = rpc_client.rpc_endpoint
-    
+
     url = f"{rest_endpoint}/cosmos/auth/v1beta1/module_accounts/extra_rewards_pool"
-    
+
     try:
         result = subprocess.run(
             [
@@ -138,16 +139,18 @@ def get_extra_rewards_pool_account(rpc_client: TellorRPCClient) -> Optional[Dict
             check=True,
             timeout=30,
         )
-        
+
         # Clean the output - remove any progress information
         output = result.stdout.strip()
         if output.startswith("{"):
             response = json.loads(output)
             return response.get("account", {})
         else:
-            print(f"Unexpected response format for module account query: {output[:100]}...")
+            print(
+                f"Unexpected response format for module account query: {output[:100]}..."
+            )
             return None
-            
+
     except subprocess.CalledProcessError as e:
         print(f"Failed to query extra rewards pool module account: {e.stderr}")
         return None
@@ -159,7 +162,9 @@ def get_extra_rewards_pool_account(rpc_client: TellorRPCClient) -> Optional[Dict
         return None
 
 
-def get_account_balance(rpc_client: TellorRPCClient, address: str, denom: str = "loya") -> Optional[int]:
+def get_account_balance(
+    rpc_client: TellorRPCClient, address: str, denom: str = "loya"
+) -> Optional[int]:
     """
     Query the balance of a specific account for a given denomination.
     Returns balance in base units (loya) or None if query fails.
@@ -171,9 +176,11 @@ def get_account_balance(rpc_client: TellorRPCClient, address: str, denom: str = 
         rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
     else:
         rest_endpoint = rpc_client.rpc_endpoint
-    
-    url = f"{rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
-    
+
+    url = (
+        f"{rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
+    )
+
     try:
         result = subprocess.run(
             [
@@ -192,7 +199,7 @@ def get_account_balance(rpc_client: TellorRPCClient, address: str, denom: str = 
             check=True,
             timeout=30,
         )
-        
+
         # Clean the output - remove any progress information
         output = result.stdout.strip()
         if output.startswith("{"):
@@ -203,7 +210,7 @@ def get_account_balance(rpc_client: TellorRPCClient, address: str, denom: str = 
         else:
             print(f"Unexpected response format for balance query: {output[:100]}...")
             return None
-            
+
     except subprocess.CalledProcessError as e:
         print(f"Failed to query account balance: {e.stderr}")
         return None
@@ -216,9 +223,7 @@ def get_account_balance(rpc_client: TellorRPCClient, address: str, denom: str = 
 
 
 def calculate_extra_rewards_duration(
-    avg_extra_rewards_per_block: float, 
-    pool_balance_loya: int, 
-    avg_block_time: float
+    avg_extra_rewards_per_block: float, pool_balance_loya: int, avg_block_time: float
 ) -> Tuple[int, float, float, float]:
     """
     Calculate how long the extra rewards pool should last.
@@ -226,19 +231,21 @@ def calculate_extra_rewards_duration(
     """
     if avg_extra_rewards_per_block <= 0:
         return 0, 0.0, 0.0, 0.0
-    
+
     blocks_remaining = int(pool_balance_loya / avg_extra_rewards_per_block)
-    
+
     # Convert to time units
     total_seconds = blocks_remaining * avg_block_time
     days = total_seconds / 86400
     hours = (total_seconds % 86400) / 3600
     minutes = (total_seconds % 3600) / 60
-    
+
     return blocks_remaining, days, hours, minutes
 
 
-def get_extra_rewards_pool_info(rpc_client: TellorRPCClient) -> Optional[Dict[str, Any]]:
+def get_extra_rewards_pool_info(
+    rpc_client: TellorRPCClient,
+) -> Optional[Dict[str, Any]]:
     """
     Get complete extra rewards pool information including account details and balance.
     Returns dict with pool info or None if any query fails.
@@ -247,21 +254,21 @@ def get_extra_rewards_pool_info(rpc_client: TellorRPCClient) -> Optional[Dict[st
     account_info = get_extra_rewards_pool_account(rpc_client)
     if not account_info:
         return None
-    
+
     # Extract address from account info
     address = account_info.get("base_account", {}).get("address")
     if not address:
         print("No address found in module account info")
         return None
-    
+
     # Get balance
     balance = get_account_balance(rpc_client, address)
     if balance is None:
         return None
-    
+
     return {
         "account_name": "extra_rewards_pool",
         "address": address,
         "balance_loya": balance,
-        "account_info": account_info
+        "account_info": account_info,
     }

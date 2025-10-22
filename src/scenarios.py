@@ -290,7 +290,9 @@ def format_targets_for_display_with_apr(targets, current_total_stake, stake_resu
         display_dict["Current APR"] = "Unable to calculate"
 
     # Add target points in ascending order by APR value
-    sorted_targets = sorted(targets.items(), key=lambda x: float(x[0].replace('% APR', '')), reverse=True)
+    sorted_targets = sorted(
+        targets.items(), key=lambda x: float(x[0].replace("% APR", "")), reverse=True
+    )
 
     for target_apr, data in sorted_targets:
         stake_trb = data["stake_trb"]
