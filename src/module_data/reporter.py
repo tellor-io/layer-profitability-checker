@@ -19,13 +19,8 @@ def get_reporters(
     try:
         # Use REST API to query reporters
         if rpc_client is not None:
-            # Get the REST endpoint from RPC client
-            rest_endpoint = rpc_client.rpc_endpoint
-            if rest_endpoint.endswith("/rpc"):
-                rest_endpoint = rest_endpoint.replace("/rpc", "")
-
-            # Query reporters via REST API
-            url = f"{rest_endpoint}/tellor-io/layer/reporter/reporters"
+            # Query reporters via REST API using configured REST endpoint
+            url = f"{rpc_client.rest_endpoint}/tellor-io/layer/reporter/reporters"
             result = subprocess.run(
                 ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
                 capture_output=True,

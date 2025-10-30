@@ -19,18 +19,13 @@ def get_min_gas_price(rpc_client=None, config=None):
         # Try multiple approaches to query global fee
         try:
             # Approach 1: Query global fee using Cosmos SDK REST API
-            if rpc_client.rpc_endpoint.endswith("/rpc"):
-                rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
-            else:
-                rest_endpoint = rpc_client.rpc_endpoint
-
             # Try different API versions
             for version in ["v1beta1", "v1", ""]:
                 try:
                     if version:
-                        url = f"{rest_endpoint}/cosmos/globalfee/{version}/minimum_gas_prices"
+                        url = f"{rpc_client.rest_endpoint}/cosmos/globalfee/{version}/minimum_gas_prices"
                     else:
-                        url = f"{rest_endpoint}/cosmos/globalfee/minimum_gas_prices"
+                        url = f"{rpc_client.rest_endpoint}/cosmos/globalfee/minimum_gas_prices"
 
                     result = subprocess.run(
                         [

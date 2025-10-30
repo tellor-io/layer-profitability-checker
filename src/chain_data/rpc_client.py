@@ -1,22 +1,28 @@
 """
 Unified RPC client for Tellor Layer blockchain queries.
-Handles both localhost and public RPC endpoints consistently.
+Uses configured RPC and REST API endpoints directly.
 """
 
 import json
 import subprocess
 from datetime import datetime
 from typing import Any, Dict, List
+from ..config import get_rpc_endpoint, get_rest_endpoint
 
 
 class TellorRPCClient:
     """Unified RPC client for Tellor Layer blockchain queries."""
 
-    def __init__(self, rpc_endpoint: str = "http://localhost:26657"):
-        self.rpc_endpoint = rpc_endpoint.rstrip("/")
-        self.is_localhost = rpc_endpoint.startswith(
-            "http://localhost"
-        ) or rpc_endpoint.startswith("http://127.0.0.1")
+    def __init__(self, rpc_endpoint: str = None, rest_endpoint: str = None):
+        """
+        Initialize RPC client with configured endpoints.
+        
+        Args:
+            rpc_endpoint: RPC endpoint URL (optional, defaults to config value)
+            rest_endpoint: REST API endpoint URL (optional, defaults to config value)
+        """
+        self.rpc_endpoint = (rpc_endpoint or get_rpc_endpoint()).rstrip("/")
+        self.rest_endpoint = (rest_endpoint or get_rest_endpoint()).rstrip("/")
 
     def query_rpc(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Query the RPC endpoint directly."""
@@ -88,13 +94,7 @@ class TellorRPCClient:
 
     def get_validators(self, height: int = None) -> List[Dict[str, Any]]:
         """Get validator set using Cosmos SDK REST API."""
-        # Use the Cosmos SDK REST API instead of CometBFT RPC
-        # Convert RPC endpoint to REST API endpoint
-        if self.rpc_endpoint.endswith("/rpc"):
-            rest_endpoint = self.rpc_endpoint.replace("/rpc", "")
-        else:
-            rest_endpoint = self.rpc_endpoint
-        url = f"{rest_endpoint}/cosmos/staking/v1beta1/validators"
+        url = f"{self.rest_endpoint}/cosmos/staking/v1beta1/validators"
 
         try:
             result = subprocess.run(
