@@ -12,7 +12,6 @@ from .chain_data.block_data import get_average_block_time
 from .chain_data.rpc_client import TellorRPCClient
 from .chain_data.tx_data import (
     print_submit_value_analysis,
-    query_mint_events,
     query_recent_reports,
 )
 from .config import get_rest_endpoint, get_rpc_endpoint, load_config
@@ -37,62 +36,16 @@ from .module_data.tipping import (
     get_tipping_summary,
     get_total_tips,
 )
+from .rewards import (
+    calculate_extra_rewards_duration,
+    get_extra_rewards_pool_info,
+    query_mint_events,
+)
 from .scenarios import format_targets_for_display_with_apr, run_scenarios_analysis
 
 
 def main():
-    # Welcome message with ASCII art night sky - green and bold
-    print("\n" + colored("┌" + "═" * 78 + "┐", "green", attrs=["bold"]))
-    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
-    print(
-        colored(
-            "║"
-            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
-            + "║",
-            "green",
-            attrs=["bold"],
-        )
-    )
-    print(
-        colored(
-            "║"
-            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
-            + "║",
-            "green",
-            attrs=["bold"],
-        )
-    )
-    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
-    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
-    print(
-        colored(
-            "║" + "TELLOR LAYER PROFITABILITY CHECKER".center(78) + "║",
-            "green",
-            attrs=["bold"],
-        )
-    )
-    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
-    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
-    print(
-        colored(
-            "║"
-            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
-            + "║",
-            "green",
-            attrs=["bold"],
-        )
-    )
-    print(
-        colored(
-            "║"
-            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
-            + "║",
-            "green",
-            attrs=["bold"],
-        )
-    )
-    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
-    print(colored("└" + "═" * 78 + "┘", "green", attrs=["bold"]))
+    print_welcome_message()
 
     # load configuration
     config = load_config("config.yaml")
@@ -168,8 +121,7 @@ def main():
     }
     print_info_box("block time stats", block_data, separators=[3])
 
-    # get mint amount from events and expected calculation
-    print_section_header("TIME BASED REWARDS")
+    print_section_header("REWARDS DISTRIBUTION")
 
     # Query mint events from recent blocks
     mint_events_data = query_mint_events(rpc_client=rpc_client)
@@ -179,57 +131,161 @@ def main():
     expected_mint_amount = minter.calculate_block_provision(time_diff)
     expected_avg_mint_amount = expected_mint_amount / block_diff
 
-    # Use event-based data if available, otherwise fall back to expected
-    if mint_events_data and mint_events_data["total_minted"] > 0:
-        event_mint_amount = mint_events_data["total_minted"]
-        event_avg_mint_amount = (
-            event_mint_amount / mint_events_data["event_count"]
-            if mint_events_data["event_count"] > 0
-            else 0
-        )
+    # Extract TBR and extra rewards data
+    tbr_mint_amount = 0
+    extra_rewards_amount = 0
+    tbr_avg_mint_amount = 0
+    extra_rewards_avg_amount = 0
 
-        # Sanity check: compare event-based vs expected (per block)
-        expected_per_block = expected_mint_amount / block_diff
-        if (
-            abs(event_avg_mint_amount - expected_per_block) > 100
-        ):  # Allow 100 loya tolerance
-            print(
-                colored(
-                    "  ⚠️  Current time based rewards amount is different from expected",
-                    "yellow",
-                    attrs=["bold"],
-                )
-            )
-            print(f"     Event-based: {event_avg_mint_amount:,.1f} loya per block")
-            print(f"     Expected:    {expected_per_block:,.1f} loya per block")
-            print(
-                f"     Difference:  {abs(event_avg_mint_amount - expected_per_block):,.1f} loya per block"
-            )
+    # Check if any events were found
+    has_any_events = mint_events_data and (
+        mint_events_data["total_tbr_minted"] > 0
+        or mint_events_data["total_extra_rewards"] > 0
+    )
+    has_tbr_events = mint_events_data and mint_events_data["total_tbr_minted"] > 0
+    has_extra_rewards_events = (
+        mint_events_data and mint_events_data["total_extra_rewards"] > 0
+    )
 
-        # Use event-based data for calculations
-        mint_amount = event_mint_amount
-        avg_mint_amount = event_avg_mint_amount
-        data_source = "Event-based"
-    else:
+    if not has_any_events:
+        # No events found - just show message
         print(
             colored(
-                "  ⚠️  No mint events found, using expected calculation",
+                "  ⚠️  No mint events found in recent blocks",
                 "yellow",
                 attrs=["bold"],
             )
         )
-        mint_amount = expected_mint_amount
-        avg_mint_amount = expected_avg_mint_amount
-        data_source = "Expected calculation"
+    else:
+        # Events found - process tbr events
+        if has_tbr_events:
+            tbr_mint_amount = mint_events_data["total_tbr_minted"]
+            tbr_avg_mint_amount = (
+                tbr_mint_amount / mint_events_data["tbr_event_count"]
+                if mint_events_data["tbr_event_count"] > 0
+                else 0
+            )
+        else:
+            tbr_mint_amount = 0
+            tbr_avg_mint_amount = 0
+            print(
+                colored(
+                    "  ⚠️  No base rewards events found in recent blocks",
+                    "yellow",
+                    attrs=["bold"],
+                )
+            )
 
-    mint_data = {
-        "Data Source": data_source,
-        "Total TBR from Sample Period": f"{mint_amount * 1e-6:,.2f} TRB",
-        "Average TBR Per Block": f"{avg_mint_amount:,.1f} loya",
-        "Projected Daily TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
-        "Projected Annual TBR": f"~ {avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
-    }
-    print_info_box("minting stats", mint_data, separators=[2])
+        # process extra rewards events
+        if has_extra_rewards_events:
+            extra_rewards_amount = mint_events_data["total_extra_rewards"]
+            extra_rewards_avg_amount = (
+                extra_rewards_amount / mint_events_data["extra_rewards_event_count"]
+                if mint_events_data["extra_rewards_event_count"] > 0
+                else 0
+            )
+        else:
+            extra_rewards_amount = 0
+            extra_rewards_avg_amount = 0
+
+        # calculate combined rewards
+        total_combined_rewards = tbr_mint_amount + extra_rewards_amount
+        total_combined_avg = tbr_avg_mint_amount + extra_rewards_avg_amount
+
+        # Display Inflationary Rewards stats (TBR only) - only if we have TBR events
+        if tbr_mint_amount > 0:
+            inflationary_rewards_data = {
+                "Inflationary Rewards": " ",
+                "Data Source": "Event-based",
+                "Average Inflationary Rewards Per Block": f"{tbr_avg_mint_amount:,.1f} loya",
+                "Projected Daily Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+                "Projected Annual Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+            }
+            print_info_box(
+                "inflationary rewards", inflationary_rewards_data, separators=[1, 2]
+            )
+
+        # Display Extra Rewards stats - only if we have extra rewards events
+        if extra_rewards_amount > 0:
+            extra_rewards_data = {
+                "Extra Rewards": " ",
+                "Data Source": "Event-based",
+                "Average Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
+            }
+            print_info_box("extra rewards", extra_rewards_data, separators=[1, 2])
+
+    # Always query and display extra rewards pool information
+    print("\nQuerying extra rewards pool module account...")
+    pool_info = get_extra_rewards_pool_info(rpc_client)
+
+    if pool_info:
+        # Display combined pool information and duration estimates
+        if has_extra_rewards_events:
+            extra_rewards_avg_amount = (
+                mint_events_data["total_extra_rewards"]
+                / mint_events_data["extra_rewards_event_count"]
+                if mint_events_data["extra_rewards_event_count"] > 0
+                else 0
+            )
+
+            blocks_remaining, days, hours, minutes = calculate_extra_rewards_duration(
+                extra_rewards_avg_amount, pool_info["balance_loya"], avg_block_time
+            )
+
+            # Display combined pool information with duration estimates
+            pool_data = {
+                "Extra Rewards Pool": " ",
+                "Module Account": pool_info["account_name"],
+                "Address": pool_info["address"],
+                "Current Balance": f"{pool_info['balance_loya']:,.0f} loya",
+                "Avg Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
+                "Estimated Blocks Remaining": f"{blocks_remaining:,}",
+                "Estimated Time Remaining": f"{days:.1f} days, {hours:.1f} hours, {minutes:.1f} minutes",
+            }
+            print_info_box("extra rewards pool", pool_data, separators=[1, 2])
+        else:
+            # Display basic pool information only (no duration estimates without events)
+            pool_data = {
+                "Extra Rewards Pool": " ",
+                "Module Account": pool_info["account_name"],
+                "Address": pool_info["address"],
+                "Current Balance": f"{pool_info['balance_loya']:,.0f} loya",
+            }
+            print_info_box("extra rewards pool", pool_data, separators=[1, 2, 4])
+    else:
+        print(
+            colored(
+                "  ⚠️  Could not query extra rewards pool module account",
+                "yellow",
+                attrs=["bold"],
+            )
+        )
+
+    # Show extra rewards warning after the pool account table if no events were found
+    if mint_events_data and not has_extra_rewards_events:
+        print(
+            colored(
+                "  ⚠️  No extra rewards events found in recent blocks",
+                "yellow",
+                attrs=["bold"],
+            )
+        )
+
+    # Only show expected inflationary rewards if no events are found
+    if not has_any_events:
+        print("\n")
+        expected_inflationary_data = {
+            "Expected Inflationary Rewards": " ",
+            "Data Source": "Expected calculation",
+            "Expected Average Rewards Per Block": f"{expected_avg_mint_amount:,.1f} loya",
+            "Expected Daily Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
+            "Expected Annual Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+        }
+        print_info_box(
+            "expected inflationary rewards",
+            expected_inflationary_data,
+            separators=[1, 2],
+        )
 
     # get average fees paid per submit value using current block analysis
     print_section_header("REPORTING COSTS")
@@ -344,13 +400,22 @@ def main():
 
     print_info_box("stake distribution repeat", stake_summary, separators=[])
 
+    # Use combined rewards for profitability calculations
+    # If no events found, use expected calculation for profitability
+    if has_any_events:
+        avg_combined_mint_amount = (
+            total_combined_avg  # This includes both TBR and extra rewards
+        )
+    else:
+        avg_combined_mint_amount = expected_avg_mint_amount  # Use expected TBR only
+
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
     avg_profit_per_block = (
-        (avg_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+        (avg_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
     ) * 1e-6
     median_profit_per_block = (
-        (median_proportion_stake * avg_mint_amount) - (avg_fee / 2)
+        (median_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
     ) * 1e-6
 
     # Time-based projections
@@ -386,7 +451,11 @@ def main():
 
     # Calculate and display break-even stake
     break_even_stake, break_even_mult = calculate_break_even_stake(
-        total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
+        total_tokens_active,
+        avg_combined_mint_amount,
+        avg_fee,
+        avg_block_time,
+        median_stake,
     )
     if break_even_stake:
         break_even_data = {
@@ -395,14 +464,14 @@ def main():
         print_info_box("break-even analysis", break_even_data)
 
     # Convert loya to TRB for APR calculations
-    avg_mint_amount_trb = avg_mint_amount * 1e-6
+    avg_combined_mint_amount_trb = avg_combined_mint_amount * 1e-6
     avg_fee_trb = avg_fee * 1e-6
 
     # Generate APR chart
     print("Generated current_apr_chart.png")
     generate_apr_chart(
         total_tokens_active,
-        avg_mint_amount_trb,
+        avg_combined_mint_amount_trb,
         avg_fee_trb,
         avg_block_time,
         median_stake,
@@ -413,7 +482,11 @@ def main():
     # Calculate and display individual reporter APRs
     print_section_header("CURRENT REPORTER APRs")
     reporter_aprs = calculate_reporter_aprs(
-        reporters, total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
+        reporters,
+        total_tokens_active,
+        avg_combined_mint_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
     )
 
     # Display both weighted average and median APRs in info box
@@ -433,7 +506,7 @@ def main():
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
     stake_results, targets = run_scenarios_analysis(
-        total_tokens_active, avg_mint_amount_trb, avg_fee_trb, avg_block_time
+        total_tokens_active, avg_combined_mint_amount_trb, avg_fee_trb, avg_block_time
     )
 
     # Display target APR points in info box with current APR
@@ -444,61 +517,78 @@ def main():
 
     # Calculate current APR for CSV export
     import numpy as np
+
     stake_amounts_trb = stake_results["stake_amounts_trb"]
     aprs = stake_results["weighted_avg_aprs"]
     current_apr = np.interp(total_tokens_active, stake_amounts_trb, aprs)
 
     # Prepare data for CSV export
+    if has_any_events:
+        csv_data_source = "Event-based"
+        csv_total_sample = total_combined_rewards * 1e-6
+        csv_avg_inflationary_per_block = tbr_avg_mint_amount
+        csv_avg_extra_per_block = extra_rewards_avg_amount
+    else:
+        csv_data_source = "Expected calculation"
+        csv_total_sample = expected_mint_amount * 1e-6
+        csv_avg_inflationary_per_block = 0
+        csv_avg_extra_per_block = 0  # No extra rewards in expected calculation
+
+    # Calculate projected values based on combined rewards
+    total_avg_per_block = csv_avg_inflationary_per_block + csv_avg_extra_per_block
+
     tbr_data = {
-        'data_source': data_source,
-        'total_tbr_sample': mint_amount * 1e-6,
-        'avg_tbr_per_block': avg_mint_amount,
-        'projected_daily_tbr': avg_mint_amount * (86400 / avg_block_time) * 1e-6,
-        'projected_annual_tbr': avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6
+        "data_source": csv_data_source,
+        "total_tbr_sample": csv_total_sample,
+        "num_blocks_sampled": block_diff,
+        "avg_inflationary_rewards_per_block": csv_avg_inflationary_per_block,
+        "avg_extra_rewards_per_block": csv_avg_extra_per_block,
+        "projected_daily_tbr": total_avg_per_block * (86400 / avg_block_time) * 1e-6,
+        "projected_annual_tbr": total_avg_per_block
+        * (86400 / avg_block_time)
+        * 365
+        * 1e-6,
     }
 
     reporting_costs_data = {
-        'avg_gas_wanted': analysis.get('avg_gas_wanted', 0),
-        'avg_gas_used': analysis.get('avg_gas_used', 0),
-        'min_gas_price': min_gas_price,
-        'avg_gas_cost': analysis.get('avg_min_cost', 0),
-        'avg_fee_paid': avg_fee,
-        'blocks_per_day': blocks_per_day,
-        'reports_per_day': reports_per_day,
-        'daily_fee_cost': daily_fee_cost_trb,
-        'monthly_fee_cost': monthly_fee_cost_trb,
-        'yearly_fee_cost': yearly_fee_cost_trb
+        "avg_gas_wanted": analysis.get("avg_gas_wanted", 0),
+        "avg_gas_used": analysis.get("avg_gas_used", 0),
+        "min_gas_price": min_gas_price,
+        "avg_gas_cost": analysis.get("avg_min_cost", 0),
+        "avg_fee_paid": avg_fee,
+        "blocks_per_day": blocks_per_day,
+        "reports_per_day": reports_per_day,
+        "daily_fee_cost": daily_fee_cost_trb,
+        "monthly_fee_cost": monthly_fee_cost_trb,
+        "yearly_fee_cost": yearly_fee_cost_trb,
     }
 
     user_tips_data = {
-        'total_tips_all_time': total_tips if total_tips is not None else 0,
-        'user_tip_totals': user_tip_totals if user_tip_totals else []
+        "total_tips_all_time": total_tips if total_tips is not None else 0,
+        "user_tip_totals": user_tip_totals if user_tip_totals else [],
     }
 
     profitability_data = {
-        'avg_stake_per_block': avg_profit_per_block,
-        'avg_stake_per_minute': avg_profit_1min,
-        'avg_stake_per_hour': avg_profit_1hour,
-        'avg_stake_per_day': avg_profit_1day,
-        'avg_stake_per_month': avg_profit_1day * 30,
-        'avg_stake_per_year': avg_profit_1day * 365,
-        'median_stake_per_block': median_profit_per_block,
-        'median_stake_per_minute': median_profit_1min,
-        'median_stake_per_hour': median_profit_1hour,
-        'median_stake_per_day': median_profit_1day,
-        'median_stake_per_month': median_profit_1day * 30,
-        'median_stake_per_year': median_profit_1day * 365
+        "avg_stake_per_block": avg_profit_per_block,
+        "avg_stake_per_minute": avg_profit_1min,
+        "avg_stake_per_hour": avg_profit_1hour,
+        "avg_stake_per_day": avg_profit_1day,
+        "avg_stake_per_month": avg_profit_1day * 30,
+        "avg_stake_per_year": avg_profit_1day * 365,
+        "median_stake_per_block": median_profit_per_block,
+        "median_stake_per_minute": median_profit_1min,
+        "median_stake_per_hour": median_profit_1hour,
+        "median_stake_per_day": median_profit_1day,
+        "median_stake_per_month": median_profit_1day * 30,
+        "median_stake_per_year": median_profit_1day * 365,
     }
 
-    apr_data = {
-        'weighted_avg_apr': weighted_avg_apr,
-        'median_apr': median_apr
-    }
+    apr_data = {"weighted_avg_apr": weighted_avg_apr, "median_apr": median_apr}
 
     stake_scenario_data = {
-        'current_network_stake': total_tokens_active,
-        'current_apr': current_apr,
-        'stake_results': stake_results
+        "current_network_stake": total_tokens_active,
+        "current_apr": current_apr,
+        "stake_results": stake_results,
     }
 
     # Export all data to CSV files
@@ -508,10 +598,65 @@ def main():
         user_tips_data,
         profitability_data,
         apr_data,
-        stake_scenario_data
+        stake_scenario_data,
     )
 
     print_section_header("END")
+
+
+def print_welcome_message():
+    # Welcome message with ASCII art night sky - green and bold
+    print("\n" + colored("┌" + "═" * 78 + "┐", "green", attrs=["bold"]))
+    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║"
+            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(
+        colored(
+            "║"
+            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║" + "TELLOR LAYER PROFITABILITY CHECKER".center(78) + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(colored("║" + " " * 78 + "║", "green", attrs=["bold"]))
+    print(
+        colored(
+            "║"
+            + "█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(
+        colored(
+            "║"
+            + "░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░▒▓█ ★ ░"
+            + "║",
+            "green",
+            attrs=["bold"],
+        )
+    )
+    print(colored("║" + "★" * 78 + "║", "green", attrs=["bold"]))
+    print(colored("└" + "═" * 78 + "┘", "green", attrs=["bold"]))
 
 
 if __name__ == "__main__":

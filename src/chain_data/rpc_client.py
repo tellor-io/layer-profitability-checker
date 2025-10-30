@@ -95,6 +95,7 @@ class TellorRPCClient:
 
     def get_validators(self, height: int = None) -> List[Dict[str, Any]]:
         """Get validator set using Cosmos SDK REST API."""
+
         url = f"{self.rest_endpoint}/cosmos/staking/v1beta1/validators"
 
         try:

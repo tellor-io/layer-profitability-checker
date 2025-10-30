@@ -16,7 +16,9 @@ def ensure_data_directory():
 def export_time_based_rewards(
     data_source,
     total_tbr_sample,
-    avg_tbr_per_block,
+    num_blocks_sampled,
+    avg_inflationary_rewards_per_block,
+    avg_extra_rewards_per_block,
     projected_daily_tbr,
     projected_annual_tbr,
 ):
@@ -25,7 +27,9 @@ def export_time_based_rewards(
     Args:
         data_source: Source of the data (e.g., "Event-based")
         total_tbr_sample: Total TBR from sample period in TRB
-        avg_tbr_per_block: Average TBR per block in loya
+        num_blocks_sampled: Number of blocks sampled for the analysis
+        avg_inflationary_rewards_per_block: Average inflationary rewards per block in loya
+        avg_extra_rewards_per_block: Average extra rewards per block in loya
         projected_daily_tbr: Projected daily TBR in TRB
         projected_annual_tbr: Projected annual TBR in TRB
     """
@@ -37,12 +41,14 @@ def export_time_based_rewards(
 
     with open(filepath, 'a', newline='') as csvfile:
         fieldnames = [
-            'timestamp',
-            'data_source',
-            'total_tbr_sample_trb',
-            'avg_tbr_per_block_loya',
-            'projected_daily_tbr',
-            'projected_annual_tbr'
+            "timestamp",
+            "data_source",
+            "total_tbr_sample_window_(trb)",
+            "num_blocks_sampled",
+            "inflationary_rewards_per_block_(loya)",
+            "extra_rewards_per_block_(loya)",
+            "projected_daily_tbr_(trb)",
+            "projected_annual_tbr_(trb)",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -93,17 +99,17 @@ def export_reporting_costs(
 
     with open(filepath, 'a', newline='') as csvfile:
         fieldnames = [
-            'timestamp',
-            'avg_gas_wanted',
-            'avg_gas_used',
-            'min_gas_price_loya',
-            'avg_gas_cost_loya',
-            'avg_fee_paid_loya',
-            'blocks_per_day',
-            'reports_per_day',
-            'daily_fee_cost_trb',
-            'monthly_fee_cost_trb',
-            'yearly_fee_cost_trb'
+            "timestamp",
+            "avg_gas_wanted",
+            "avg_gas_used",
+            "min_gas_price_loya",
+            "avg_gas_cost_loya",
+            "avg_fee_paid_loya",
+            "blocks_per_day",
+            "reports_per_day",
+            "daily_fee_cost_trb",
+            "monthly_fee_cost_trb",
+            "yearly_fee_cost_trb",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -141,7 +147,7 @@ def export_user_tip_totals(total_tips_all_time, user_tip_totals):
     with open(filepath, 'a', newline='') as csvfile:
         # Create fieldnames dynamically based on number of top users we want to track
         # We'll track the top 10 users
-        fieldnames = ['timestamp', 'total_tips_all_time']
+        fieldnames = ["timestamp", "total_tips_all_time"]
         for i in range(1, 11):  # Top 10 users
             fieldnames.extend([f'top_{i}_address', f'top_{i}_tips_trb'])
 
@@ -151,16 +157,16 @@ def export_user_tip_totals(total_tips_all_time, user_tip_totals):
             writer.writeheader()
 
         row_data = {
-            'timestamp': datetime.now().isoformat(),
-            'total_tips_all_time': f"{total_tips_all_time:.5f}"
+            "timestamp": datetime.now().isoformat(),
+            "total_tips_all_time": f"{total_tips_all_time:.5f}",
         }
 
         # Add top 10 users (or fewer if not available)
         for i in range(1, 11):
             if i <= len(user_tip_totals):
-                address, tips = user_tip_totals[i-1]
-                row_data[f'top_{i}_address'] = address
-                row_data[f'top_{i}_tips_trb'] = f"{tips:.5f}"
+                address, tips = user_tip_totals[i - 1]
+                row_data[f"top_{i}_address"] = address
+                row_data[f"top_{i}_tips_trb"] = f"{tips:.5f}"
             else:
                 row_data[f'top_{i}_address'] = ''
                 row_data[f'top_{i}_tips_trb'] = ''
@@ -195,19 +201,19 @@ def export_validator_profitability(
 
     with open(filepath, 'a', newline='') as csvfile:
         fieldnames = [
-            'timestamp',
-            'avg_stake_per_block',
-            'avg_stake_per_minute',
-            'avg_stake_per_hour',
-            'avg_stake_per_day',
-            'avg_stake_per_month',
-            'avg_stake_per_year',
-            'median_stake_per_block',
-            'median_stake_per_minute',
-            'median_stake_per_hour',
-            'median_stake_per_day',
-            'median_stake_per_month',
-            'median_stake_per_year'
+            "timestamp",
+            "avg_stake_per_block",
+            "avg_stake_per_minute",
+            "avg_stake_per_hour",
+            "avg_stake_per_day",
+            "avg_stake_per_month",
+            "avg_stake_per_year",
+            "median_stake_per_block",
+            "median_stake_per_minute",
+            "median_stake_per_hour",
+            "median_stake_per_day",
+            "median_stake_per_month",
+            "median_stake_per_year",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -296,13 +302,14 @@ def export_apr_by_total_stake(current_network_stake, current_apr, stake_results)
             writer.writeheader()
 
         row_data = {
-            'timestamp': datetime.now().isoformat(),
-            'current_network_stake': f"{current_network_stake:.0f}",
-            'current_apr': f"{current_apr:.1f}"
+            "timestamp": datetime.now().isoformat(),
+            "current_network_stake": f"{current_network_stake:.0f}",
+            "current_apr": f"{current_apr:.1f}",
         }
 
         # Calculate APR for each target stake level
         import numpy as np
+
         stake_amounts_trb = stake_results["stake_amounts_trb"]
         aprs = stake_results["weighted_avg_aprs"]
 
@@ -348,14 +355,14 @@ def export_network_profitability_summary(
 
     with open(filepath, 'a', newline='') as csvfile:
         fieldnames = [
-            'timestamp',
-            'current_network_stake_trb',
-            'current_apr_percent',
-            'weighted_avg_apr_percent',
-            'median_apr_percent',
-            'projected_annual_tbr',
-            'yearly_fee_cost_trb',
-            'net_annual_profitability_trb'
+            "timestamp",
+            "current_network_stake_trb",
+            "current_apr_percent",
+            "weighted_avg_apr_percent",
+            "median_apr_percent",
+            "projected_annual_tbr",
+            "yearly_fee_cost_trb",
+            "net_annual_profitability_trb",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -397,78 +404,77 @@ def export_all_data(
 
     # Export network profitability summary (the most important metrics)
     export_network_profitability_summary(
-        stake_scenario_data['current_network_stake'],
-        stake_scenario_data['current_apr'],
-        tbr_data['projected_annual_tbr'],
-        reporting_costs_data['yearly_fee_cost'],
-        apr_data['weighted_avg_apr'],
-        apr_data['median_apr']
+        stake_scenario_data["current_network_stake"],
+        stake_scenario_data["current_apr"],
+        tbr_data["projected_annual_tbr"],
+        reporting_costs_data["yearly_fee_cost"],
+        apr_data["weighted_avg_apr"],
+        apr_data["median_apr"],
     )
     print("  ✓ Exported network profitability summary")
 
     # Export time-based rewards
     export_time_based_rewards(
-        tbr_data['data_source'],
-        tbr_data['total_tbr_sample'],
-        tbr_data['avg_tbr_per_block'],
-        tbr_data['projected_daily_tbr'],
-        tbr_data['projected_annual_tbr']
+        tbr_data["data_source"],
+        tbr_data["total_tbr_sample"],
+        tbr_data["num_blocks_sampled"],
+        tbr_data["avg_inflationary_rewards_per_block"],
+        tbr_data["avg_extra_rewards_per_block"],
+        tbr_data["projected_daily_tbr"],
+        tbr_data["projected_annual_tbr"],
     )
     print("  ✓ Exported time-based rewards")
 
     # Export reporting costs
     export_reporting_costs(
-        reporting_costs_data['avg_gas_wanted'],
-        reporting_costs_data['avg_gas_used'],
-        reporting_costs_data['min_gas_price'],
-        reporting_costs_data['avg_gas_cost'],
-        reporting_costs_data['avg_fee_paid'],
-        reporting_costs_data['blocks_per_day'],
-        reporting_costs_data['reports_per_day'],
-        reporting_costs_data['daily_fee_cost'],
-        reporting_costs_data['monthly_fee_cost'],
-        reporting_costs_data['yearly_fee_cost']
+        reporting_costs_data["avg_gas_wanted"],
+        reporting_costs_data["avg_gas_used"],
+        reporting_costs_data["min_gas_price"],
+        reporting_costs_data["avg_gas_cost"],
+        reporting_costs_data["avg_fee_paid"],
+        reporting_costs_data["blocks_per_day"],
+        reporting_costs_data["reports_per_day"],
+        reporting_costs_data["daily_fee_cost"],
+        reporting_costs_data["monthly_fee_cost"],
+        reporting_costs_data["yearly_fee_cost"],
     )
     print("  ✓ Exported reporting costs")
 
     # Export user tip totals
     export_user_tip_totals(
-        user_tips_data['total_tips_all_time'],
-        user_tips_data['user_tip_totals']
+        user_tips_data["total_tips_all_time"], user_tips_data["user_tip_totals"]
     )
     print("  ✓ Exported user tip totals")
 
     # Export validator profitability
     export_validator_profitability(
-        profitability_data['avg_stake_per_block'],
-        profitability_data['avg_stake_per_minute'],
-        profitability_data['avg_stake_per_hour'],
-        profitability_data['avg_stake_per_day'],
-        profitability_data['avg_stake_per_month'],
-        profitability_data['avg_stake_per_year'],
-        profitability_data['median_stake_per_block'],
-        profitability_data['median_stake_per_minute'],
-        profitability_data['median_stake_per_hour'],
-        profitability_data['median_stake_per_day'],
-        profitability_data['median_stake_per_month'],
-        profitability_data['median_stake_per_year']
+        profitability_data["avg_stake_per_block"],
+        profitability_data["avg_stake_per_minute"],
+        profitability_data["avg_stake_per_hour"],
+        profitability_data["avg_stake_per_day"],
+        profitability_data["avg_stake_per_month"],
+        profitability_data["avg_stake_per_year"],
+        profitability_data["median_stake_per_block"],
+        profitability_data["median_stake_per_minute"],
+        profitability_data["median_stake_per_hour"],
+        profitability_data["median_stake_per_day"],
+        profitability_data["median_stake_per_month"],
+        profitability_data["median_stake_per_year"],
     )
     print("  ✓ Exported validator profitability")
 
     # Export current reporter APRs
-    export_current_reporter_aprs(
-        apr_data['weighted_avg_apr'],
-        apr_data['median_apr']
-    )
+    export_current_reporter_aprs(apr_data["weighted_avg_apr"], apr_data["median_apr"])
     print("  ✓ Exported current reporter APRs")
 
     # Export APR by total stake
     export_apr_by_total_stake(
-        stake_scenario_data['current_network_stake'],
-        stake_scenario_data['current_apr'],
-        stake_scenario_data['stake_results']
+        stake_scenario_data["current_network_stake"],
+        stake_scenario_data["current_apr"],
+        stake_scenario_data["stake_results"],
     )
     print("  ✓ Exported APR by total stake scenarios")
 
     print("\nAll data exported successfully to ./data/ directory")
 
+    print("\nAll data exported successfully to ./data/ directory")
