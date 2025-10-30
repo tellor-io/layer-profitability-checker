@@ -8,22 +8,20 @@ import subprocess
 from datetime import datetime
 from typing import Any, Dict, List
 
-from ..config import get_rest_endpoint, get_rpc_endpoint
-
 
 class TellorRPCClient:
     """Unified RPC client for Tellor Layer blockchain queries."""
 
-    def __init__(self, rpc_endpoint: str = None, rest_endpoint: str = None):
+    def __init__(self, rpc_endpoint: str, rest_endpoint: str):
         """
         Initialize RPC client with configured endpoints.
 
         Args:
-            rpc_endpoint: RPC endpoint URL (optional, defaults to config value)
-            rest_endpoint: REST API endpoint URL (optional, defaults to config value)
+            rpc_endpoint: RPC endpoint URL
+            rest_endpoint: REST API endpoint URL
         """
-        self.rpc_endpoint = (rpc_endpoint or get_rpc_endpoint()).rstrip("/")
-        self.rest_endpoint = (rest_endpoint or get_rest_endpoint()).rstrip("/")
+        self.rpc_endpoint = rpc_endpoint.rstrip("/")
+        self.rest_endpoint = rest_endpoint.rstrip("/")
 
     def query_rpc(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Query the RPC endpoint directly."""

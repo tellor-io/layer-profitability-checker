@@ -56,12 +56,14 @@ def export_time_based_rewards(
             writer.writeheader()
 
         writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'data_source': data_source,
-            'total_tbr_sample_trb': f"{total_tbr_sample:.2f}",
-            'avg_tbr_per_block_loya': f"{avg_tbr_per_block:.1f}",
-            'projected_daily_tbr': f"{projected_daily_tbr:.0f}",
-            'projected_annual_tbr': f"{projected_annual_tbr:.0f}"
+            "timestamp": datetime.now().isoformat(),
+            "data_source": data_source,
+            "total_tbr_sample_window_(trb)": f"{total_tbr_sample:.2f}",
+            "num_blocks_sampled": f"{num_blocks_sampled}",
+            "inflationary_rewards_per_block_(loya)": f"{avg_inflationary_rewards_per_block:.1f}",
+            "extra_rewards_per_block_(loya)": f"{avg_extra_rewards_per_block:.1f}",
+            "projected_daily_tbr_(trb)": f"{projected_daily_tbr:.0f}",
+            "projected_annual_tbr_(trb)": f"{projected_annual_tbr:.0f}"
         })
 
 

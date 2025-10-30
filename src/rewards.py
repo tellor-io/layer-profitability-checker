@@ -111,15 +111,8 @@ def get_extra_rewards_pool_account(
     Query the extra rewards pool module account information.
     Returns dict with account details or None if query fails.
     """
-    # Convert RPC endpoint to REST API endpoint
-    if rpc_client.is_localhost:
-        rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
-    elif rpc_client.rpc_endpoint.endswith("/rpc"):
-        rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
-    else:
-        rest_endpoint = rpc_client.rpc_endpoint
-
-    url = f"{rest_endpoint}/cosmos/auth/v1beta1/module_accounts/extra_rewards_pool"
+    # Use the REST endpoint from the RPC client
+    url = f"{rpc_client.rest_endpoint}/cosmos/auth/v1beta1/module_accounts/extra_rewards_pool"
 
     try:
         result = subprocess.run(
@@ -169,16 +162,9 @@ def get_account_balance(
     Query the balance of a specific account for a given denomination.
     Returns balance in base units (loya) or None if query fails.
     """
-    # Convert RPC endpoint to REST API endpoint
-    if rpc_client.is_localhost:
-        rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
-    elif rpc_client.rpc_endpoint.endswith("/rpc"):
-        rest_endpoint = rpc_client.rpc_endpoint.replace("/rpc", "")
-    else:
-        rest_endpoint = rpc_client.rpc_endpoint
-
+    # Use the REST endpoint from the RPC client
     url = (
-        f"{rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
+        f"{rpc_client.rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
     )
 
     try:
