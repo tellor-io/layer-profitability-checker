@@ -52,17 +52,8 @@ def get_current_tip(
     """
     try:
         if rpc_client is not None and query_data:
-            # Get the REST endpoint from RPC client
-            if rpc_client.is_localhost:
-                # For localhost, REST API is typically on port 1317
-                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
-            else:
-                rest_endpoint = rpc_client.rpc_endpoint
-            if rest_endpoint.endswith("/rpc"):
-                rest_endpoint = rest_endpoint.replace("/rpc", "")
-
-            # Query current tip via REST API
-            url = f"{rest_endpoint}/tellor-io/layer/oracle/get_current_tip/{query_data}"
+            # Query current tip via REST API using configured REST endpoint
+            url = f"{rpc_client.rest_endpoint}/tellor-io/layer/oracle/get_current_tip/{query_data}"
             result = subprocess.run(
                 ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
                 capture_output=True,
@@ -193,14 +184,7 @@ def get_total_tips(rpc_client=None) -> Optional[float]:
             print("Warning: RPC client not provided for total tips query")
             return None
 
-        if rpc_client.is_localhost:
-            # For localhost, REST API is typically on port 1317
-            rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
-        else:
-            rest_endpoint = rpc_client.rpc_endpoint
-        if rest_endpoint.endswith("/rpc"):
-            rest_endpoint = rest_endpoint.replace("/rpc", "")
-        url = f"{rest_endpoint}/tellor-io/layer/oracle/get_tip_total"
+        url = f"{rpc_client.rest_endpoint}/tellor-io/layer/oracle/get_tip_total"
 
         result = subprocess.run(
             ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
@@ -259,17 +243,8 @@ def get_available_tips(
     """
     try:
         if rpc_client is not None and selector_address:
-            # Get the REST endpoint from RPC client
-            if rpc_client.is_localhost:
-                # For localhost, REST API is typically on port 1317
-                rest_endpoint = rpc_client.rpc_endpoint.replace(":26657", ":1317")
-            else:
-                rest_endpoint = rpc_client.rpc_endpoint
-            if rest_endpoint.endswith("/rpc"):
-                rest_endpoint = rest_endpoint.replace("/rpc", "")
-
-            # Query available tips via REST API
-            url = f"{rest_endpoint}/tellor-io/layer/reporter/available-tips/{selector_address}"
+            # Query available tips via REST API using configured REST endpoint
+            url = f"{rpc_client.rest_endpoint}/tellor-io/layer/reporter/available-tips/{selector_address}"
             result = subprocess.run(
                 ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
                 capture_output=True,
@@ -357,12 +332,12 @@ def get_tipping_summary(tips: Dict[str, Optional[float]]) -> Dict[str, str]:
     }
 
 
-def get_all_denom_owners(rest_endpoint: str) -> List[str]:
+def get_all_denom_owners(rpc_client) -> List[str]:
     """
     Get all loya denom owners using pagination.
 
     Args:
-        rest_endpoint: REST API endpoint (without /rpc)
+        rpc_client: RPC client instance with configured REST endpoint
 
     Returns:
         List of all addresses that own loya tokens
@@ -375,7 +350,7 @@ def get_all_denom_owners(rest_endpoint: str) -> List[str]:
 
     while True:
         # Build URL with pagination
-        url = f"{rest_endpoint}/cosmos/bank/v1beta1/denom_owners/loya"
+        url = f"{rpc_client.rest_endpoint}/cosmos/bank/v1beta1/denom_owners/loya"
         if next_key:
             url += f"?pagination.key={next_key}"
 
@@ -422,19 +397,19 @@ def get_all_denom_owners(rest_endpoint: str) -> List[str]:
     return all_addresses
 
 
-def get_user_tip_total(rest_endpoint: str, address: str) -> Optional[float]:
+def get_user_tip_total(rpc_client, address: str) -> Optional[float]:
     """
     Get tip total for a specific user address.
 
     Args:
-        rest_endpoint: REST API endpoint (without /rpc)
+        rpc_client: RPC client instance with configured REST endpoint
         address: User address to query
 
     Returns:
         Tip total in TRB, or None if query fails
     """
     try:
-        url = f"{rest_endpoint}/tellor-io/layer/oracle/get_user_tip_total/{address}"
+        url = f"{rpc_client.rest_endpoint}/tellor-io/layer/oracle/get_user_tip_total/{address}"
         result = subprocess.run(
             ["curl", "-s", "-X", "GET", url, "-H", "accept: application/json"],
             capture_output=True,
@@ -473,18 +448,18 @@ def get_user_tip_total(rest_endpoint: str, address: str) -> Optional[float]:
         return None
 
 
-def get_all_user_tip_totals(rest_endpoint: str) -> List[Tuple[str, float]]:
+def get_all_user_tip_totals(rpc_client) -> List[Tuple[str, float]]:
     """
     Get tip totals for all loya denom owners.
 
     Args:
-        rest_endpoint: REST API endpoint (without /rpc)
+        rpc_client: RPC client instance with configured REST endpoint
 
     Returns:
         List of tuples (address, tip_total) for addresses with tip_total > 0
     """
     # Get all addresses
-    addresses = get_all_denom_owners(rest_endpoint)
+    addresses = get_all_denom_owners(rpc_client)
 
     tip_totals = []
     print(f"\nQuerying tip totals for {len(addresses)} addresses...")
@@ -493,7 +468,7 @@ def get_all_user_tip_totals(rest_endpoint: str) -> List[Tuple[str, float]]:
         if i % 10 == 0 or i == len(addresses):
             print(f"  Progress: {i}/{len(addresses)} addresses queried")
 
-        tip_total = get_user_tip_total(rest_endpoint, address)
+        tip_total = get_user_tip_total(rpc_client, address)
 
         if tip_total is not None and tip_total > 0:
             tip_totals.append((address, tip_total))

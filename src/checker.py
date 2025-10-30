@@ -1,4 +1,3 @@
-import yaml
 from termcolor import colored
 
 from .apr import (
@@ -15,6 +14,7 @@ from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_recent_reports,
 )
+from .config import get_rest_endpoint, get_rpc_endpoint, load_config
 from .csv_export import export_all_data
 from .display_helpers import (
     print_box_and_whisker,
@@ -48,13 +48,14 @@ def main():
     print_welcome_message()
 
     # load configuration
-    with open("config.yaml") as f:
-        config = yaml.safe_load(f)
+    config = load_config("config.yaml")
 
-    # Initialize RPC client (unified approach)
-    rpc_endpoint = config.get("rpc_endpoint", "http://localhost:26657")
+    # Initialize RPC client with both RPC and REST endpoints
+    rpc_endpoint = get_rpc_endpoint(config)
+    rest_endpoint = get_rest_endpoint(config)
     print(f"Using RPC endpoint: {rpc_endpoint}")
-    rpc_client = TellorRPCClient(rpc_endpoint)
+    print(f"Using REST endpoint: {rest_endpoint}")
+    rpc_client = TellorRPCClient(rpc_endpoint, rest_endpoint)
     abci_client = TellorABCIClient(rpc_client)
 
     # get chain id
@@ -377,13 +378,8 @@ def main():
     # Get all user tip totals
     print_section_header("USER TIP TOTALS")
 
-    # Get the REST endpoint from RPC client
-    rest_endpoint = rpc_client.rpc_endpoint
-    if rest_endpoint.endswith("/rpc"):
-        rest_endpoint = rest_endpoint.replace("/rpc", "")
-
-    # Get all user tip totals
-    user_tip_totals = get_all_user_tip_totals(rest_endpoint)
+    # Get all user tip totals using RPC client with configured endpoints
+    user_tip_totals = get_all_user_tip_totals(rpc_client)
 
     # Display total tips all time first
     if total_tips is not None:

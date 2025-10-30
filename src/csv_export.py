@@ -24,7 +24,6 @@ def export_time_based_rewards(
 ):
     """
     Export time-based rewards data to CSV
-
     Args:
         data_source: Source of the data (e.g., "Event-based")
         total_tbr_sample: Total TBR from sample period in TRB
@@ -483,5 +482,7 @@ def export_all_data(
         stake_scenario_data["stake_results"],
     )
     print("  ✓ Exported APR by total stake scenarios")
+
+    print("\nAll data exported successfully to ./data/ directory")
 
     print("\nAll data exported successfully to ./data/ directory")
