@@ -7,7 +7,8 @@ import json
 import subprocess
 from datetime import datetime
 from typing import Any, Dict, List
-from ..config import get_rpc_endpoint, get_rest_endpoint
+
+from ..config import get_rest_endpoint, get_rpc_endpoint
 
 
 class TellorRPCClient:
@@ -16,7 +17,7 @@ class TellorRPCClient:
     def __init__(self, rpc_endpoint: str = None, rest_endpoint: str = None):
         """
         Initialize RPC client with configured endpoints.
-        
+
         Args:
             rpc_endpoint: RPC endpoint URL (optional, defaults to config value)
             rest_endpoint: REST API endpoint URL (optional, defaults to config value)

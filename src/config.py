@@ -3,17 +3,18 @@ Configuration loader for Tellor Layer Profitability Checker.
 Provides centralized access to configuration values.
 """
 
+from typing import Any, Dict
+
 import yaml
-from typing import Dict, Any
 
 
 def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
     """
     Load configuration from YAML file.
-    
+
     Args:
         config_path: Path to the config file
-        
+
     Returns:
         Dictionary containing configuration values
     """
@@ -32,10 +33,10 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
 def get_rpc_endpoint(config: Dict[str, Any]) -> str:
     """
     Get RPC endpoint from config.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         RPC endpoint URL
     """
@@ -45,10 +46,10 @@ def get_rpc_endpoint(config: Dict[str, Any]) -> str:
 def get_rest_endpoint(config: Dict[str, Any]) -> str:
     """
     Get REST API endpoint from config.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         REST API endpoint URL
     """
@@ -58,10 +59,10 @@ def get_rest_endpoint(config: Dict[str, Any]) -> str:
 def get_min_gas_price(config: Dict[str, Any]) -> float:
     """
     Get minimum gas price from config if specified.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Minimum gas price or None if not specified
     """
@@ -77,10 +78,10 @@ def get_min_gas_price(config: Dict[str, Any]) -> float:
 def get_account_address(config: Dict[str, Any]) -> str:
     """
     Get account address from config if specified.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Account address or None if not specified
     """
@@ -90,10 +91,10 @@ def get_account_address(config: Dict[str, Any]) -> str:
 def get_query_datas(config: Dict[str, Any]) -> Dict[str, str]:
     """
     Get query_datas from config.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Dictionary mapping price feed names to query data hex strings
     """

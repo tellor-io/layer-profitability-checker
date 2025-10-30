@@ -1,4 +1,3 @@
-import yaml
 from termcolor import colored
 
 from .apr import (
@@ -11,12 +10,12 @@ from .apr import (
 from .chain_data.abci_queries import TellorABCIClient
 from .chain_data.block_data import get_average_block_time
 from .chain_data.rpc_client import TellorRPCClient
-from .config import load_config, get_rpc_endpoint, get_rest_endpoint
 from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_mint_events,
     query_recent_reports,
 )
+from .config import get_rest_endpoint, get_rpc_endpoint, load_config
 from .csv_export import export_all_data
 from .display_helpers import (
     print_box_and_whisker,
