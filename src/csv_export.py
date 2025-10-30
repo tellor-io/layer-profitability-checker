@@ -39,7 +39,7 @@ def export_time_based_rewards(
     # Check if file exists to determine if we need to write headers
     file_exists = os.path.isfile(filepath)
 
-    with open(filepath, 'a', newline='') as csvfile:
+    with open(filepath, "a", newline="") as csvfile:
         fieldnames = [
             "timestamp",
             "data_source",
@@ -55,16 +55,18 @@ def export_time_based_rewards(
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow({
-            "timestamp": datetime.now().isoformat(),
-            "data_source": data_source,
-            "total_tbr_sample_window_(trb)": f"{total_tbr_sample:.2f}",
-            "num_blocks_sampled": f"{num_blocks_sampled}",
-            "inflationary_rewards_per_block_(loya)": f"{avg_inflationary_rewards_per_block:.1f}",
-            "extra_rewards_per_block_(loya)": f"{avg_extra_rewards_per_block:.1f}",
-            "projected_daily_tbr_(trb)": f"{projected_daily_tbr:.0f}",
-            "projected_annual_tbr_(trb)": f"{projected_annual_tbr:.0f}"
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "data_source": data_source,
+                "total_tbr_sample_window_(trb)": f"{total_tbr_sample:.2f}",
+                "num_blocks_sampled": f"{num_blocks_sampled}",
+                "inflationary_rewards_per_block_(loya)": f"{avg_inflationary_rewards_per_block:.1f}",
+                "extra_rewards_per_block_(loya)": f"{avg_extra_rewards_per_block:.1f}",
+                "projected_daily_tbr_(trb)": f"{projected_daily_tbr:.0f}",
+                "projected_annual_tbr_(trb)": f"{projected_annual_tbr:.0f}",
+            }
+        )
 
 
 def export_reporting_costs(
@@ -99,7 +101,7 @@ def export_reporting_costs(
 
     file_exists = os.path.isfile(filepath)
 
-    with open(filepath, 'a', newline='') as csvfile:
+    with open(filepath, "a", newline="") as csvfile:
         fieldnames = [
             "timestamp",
             "avg_gas_wanted",
@@ -118,19 +120,21 @@ def export_reporting_costs(
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'avg_gas_wanted': f"{avg_gas_wanted:.0f}",
-            'avg_gas_used': f"{avg_gas_used:.0f}",
-            'min_gas_price_loya': f"{min_gas_price:.6f}",
-            'avg_gas_cost_loya': f"{avg_gas_cost:.4f}",
-            'avg_fee_paid_loya': f"{avg_fee_paid:.1f}",
-            'blocks_per_day': f"{blocks_per_day:.0f}",
-            'reports_per_day': f"{reports_per_day:.0f}",
-            'daily_fee_cost_trb': f"{daily_fee_cost:.4f}",
-            'monthly_fee_cost_trb': f"{monthly_fee_cost:.1f}",
-            'yearly_fee_cost_trb': f"{yearly_fee_cost:.1f}"
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "avg_gas_wanted": f"{avg_gas_wanted:.0f}",
+                "avg_gas_used": f"{avg_gas_used:.0f}",
+                "min_gas_price_loya": f"{min_gas_price:.6f}",
+                "avg_gas_cost_loya": f"{avg_gas_cost:.4f}",
+                "avg_fee_paid_loya": f"{avg_fee_paid:.1f}",
+                "blocks_per_day": f"{blocks_per_day:.0f}",
+                "reports_per_day": f"{reports_per_day:.0f}",
+                "daily_fee_cost_trb": f"{daily_fee_cost:.4f}",
+                "monthly_fee_cost_trb": f"{monthly_fee_cost:.1f}",
+                "yearly_fee_cost_trb": f"{yearly_fee_cost:.1f}",
+            }
+        )
 
 
 def export_user_tip_totals(total_tips_all_time, user_tip_totals):
@@ -146,12 +150,12 @@ def export_user_tip_totals(total_tips_all_time, user_tip_totals):
 
     file_exists = os.path.isfile(filepath)
 
-    with open(filepath, 'a', newline='') as csvfile:
+    with open(filepath, "a", newline="") as csvfile:
         # Create fieldnames dynamically based on number of top users we want to track
         # We'll track the top 10 users
         fieldnames = ["timestamp", "total_tips_all_time"]
         for i in range(1, 11):  # Top 10 users
-            fieldnames.extend([f'top_{i}_address', f'top_{i}_tips_trb'])
+            fieldnames.extend([f"top_{i}_address", f"top_{i}_tips_trb"])
 
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -170,8 +174,8 @@ def export_user_tip_totals(total_tips_all_time, user_tip_totals):
                 row_data[f"top_{i}_address"] = address
                 row_data[f"top_{i}_tips_trb"] = f"{tips:.5f}"
             else:
-                row_data[f'top_{i}_address'] = ''
-                row_data[f'top_{i}_tips_trb'] = ''
+                row_data[f"top_{i}_address"] = ""
+                row_data[f"top_{i}_tips_trb"] = ""
 
         writer.writerow(row_data)
 
@@ -201,7 +205,7 @@ def export_validator_profitability(
 
     file_exists = os.path.isfile(filepath)
 
-    with open(filepath, 'a', newline='') as csvfile:
+    with open(filepath, "a", newline="") as csvfile:
         fieldnames = [
             "timestamp",
             "avg_stake_per_block",
@@ -222,21 +226,23 @@ def export_validator_profitability(
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'avg_stake_per_block': f"{avg_stake_per_block:.6f}",
-            'avg_stake_per_minute': f"{avg_stake_per_minute:.6f}",
-            'avg_stake_per_hour': f"{avg_stake_per_hour:.1f}",
-            'avg_stake_per_day': f"{avg_stake_per_day:.1f}",
-            'avg_stake_per_month': f"{avg_stake_per_month:.1f}",
-            'avg_stake_per_year': f"{avg_stake_per_year:.0f}",
-            'median_stake_per_block': f"{median_stake_per_block:.6f}",
-            'median_stake_per_minute': f"{median_stake_per_minute:.6f}",
-            'median_stake_per_hour': f"{median_stake_per_hour:.1f}",
-            'median_stake_per_day': f"{median_stake_per_day:.1f}",
-            'median_stake_per_month': f"{median_stake_per_month:.1f}",
-            'median_stake_per_year': f"{median_stake_per_year:.0f}"
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "avg_stake_per_block": f"{avg_stake_per_block:.6f}",
+                "avg_stake_per_minute": f"{avg_stake_per_minute:.6f}",
+                "avg_stake_per_hour": f"{avg_stake_per_hour:.1f}",
+                "avg_stake_per_day": f"{avg_stake_per_day:.1f}",
+                "avg_stake_per_month": f"{avg_stake_per_month:.1f}",
+                "avg_stake_per_year": f"{avg_stake_per_year:.0f}",
+                "median_stake_per_block": f"{median_stake_per_block:.6f}",
+                "median_stake_per_minute": f"{median_stake_per_minute:.6f}",
+                "median_stake_per_hour": f"{median_stake_per_hour:.1f}",
+                "median_stake_per_day": f"{median_stake_per_day:.1f}",
+                "median_stake_per_month": f"{median_stake_per_month:.1f}",
+                "median_stake_per_year": f"{median_stake_per_year:.0f}",
+            }
+        )
 
 
 def export_current_reporter_aprs(weighted_avg_apr, median_apr):
@@ -252,22 +258,20 @@ def export_current_reporter_aprs(weighted_avg_apr, median_apr):
 
     file_exists = os.path.isfile(filepath)
 
-    with open(filepath, 'a', newline='') as csvfile:
-        fieldnames = [
-            'timestamp',
-            'weighted_avg_apr',
-            'median_apr'
-        ]
+    with open(filepath, "a", newline="") as csvfile:
+        fieldnames = ["timestamp", "weighted_avg_apr", "median_apr"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'weighted_avg_apr': f"{weighted_avg_apr:.2f}",
-            'median_apr': f"{median_apr:.2f}"
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "weighted_avg_apr": f"{weighted_avg_apr:.2f}",
+                "median_apr": f"{median_apr:.2f}",
+            }
+        )
 
 
 def export_apr_by_total_stake(current_network_stake, current_apr, stake_results):
@@ -287,8 +291,8 @@ def export_apr_by_total_stake(current_network_stake, current_apr, stake_results)
     # Define the specific stake levels we want to track
     target_stakes = [50000, 100000, 200000, 500000, 1000000, 2000000, 5000000, 10000000]
 
-    with open(filepath, 'a', newline='') as csvfile:
-        fieldnames = ['timestamp', 'current_network_stake', 'current_apr']
+    with open(filepath, "a", newline="") as csvfile:
+        fieldnames = ["timestamp", "current_network_stake", "current_apr"]
 
         # Add fieldnames for each target stake level
         for stake in target_stakes:
@@ -296,7 +300,7 @@ def export_apr_by_total_stake(current_network_stake, current_apr, stake_results)
                 stake_label = f"{stake / 1000000:.1f}M"
             else:
                 stake_label = f"{stake / 1000:.0f}k"
-            fieldnames.append(f'apr_at_{stake_label}_trb')
+            fieldnames.append(f"apr_at_{stake_label}_trb")
 
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -323,7 +327,7 @@ def export_apr_by_total_stake(current_network_stake, current_apr, stake_results)
 
             # Interpolate APR at this stake level
             apr_at_stake = np.interp(stake, stake_amounts_trb, aprs)
-            row_data[f'apr_at_{stake_label}_trb'] = f"{apr_at_stake:.1f}"
+            row_data[f"apr_at_{stake_label}_trb"] = f"{apr_at_stake:.1f}"
 
         writer.writerow(row_data)
 
@@ -355,7 +359,7 @@ def export_network_profitability_summary(
     # Calculate net annual profitability
     net_annual_profitability = projected_annual_tbr - yearly_fee_cost
 
-    with open(filepath, 'a', newline='') as csvfile:
+    with open(filepath, "a", newline="") as csvfile:
         fieldnames = [
             "timestamp",
             "current_network_stake_trb",
@@ -371,16 +375,18 @@ def export_network_profitability_summary(
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'current_network_stake_trb': f"{current_network_stake:.0f}",
-            'current_apr_percent': f"{current_apr:.1f}",
-            'weighted_avg_apr_percent': f"{weighted_avg_apr:.2f}",
-            'median_apr_percent': f"{median_apr:.2f}",
-            'projected_annual_tbr': f"{projected_annual_tbr:.0f}",
-            'yearly_fee_cost_trb': f"{yearly_fee_cost:.1f}",
-            'net_annual_profitability_trb': f"{net_annual_profitability:.0f}"
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "current_network_stake_trb": f"{current_network_stake:.0f}",
+                "current_apr_percent": f"{current_apr:.1f}",
+                "weighted_avg_apr_percent": f"{weighted_avg_apr:.2f}",
+                "median_apr_percent": f"{median_apr:.2f}",
+                "projected_annual_tbr": f"{projected_annual_tbr:.0f}",
+                "yearly_fee_cost_trb": f"{yearly_fee_cost:.1f}",
+                "net_annual_profitability_trb": f"{net_annual_profitability:.0f}",
+            }
+        )
 
 
 def export_all_data(

@@ -163,9 +163,7 @@ def get_account_balance(
     Returns balance in base units (loya) or None if query fails.
     """
     # Use the REST endpoint from the RPC client
-    url = (
-        f"{rpc_client.rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
-    )
+    url = f"{rpc_client.rest_endpoint}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom={denom}"
 
     try:
         result = subprocess.run(

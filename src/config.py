@@ -70,7 +70,9 @@ def get_min_gas_price(config: Dict[str, Any]) -> float:
         try:
             return float(config["min_gas_price"])
         except (ValueError, TypeError):
-            print(f"Warning: Invalid min_gas_price in config: {config['min_gas_price']}")
+            print(
+                f"Warning: Invalid min_gas_price in config: {config['min_gas_price']}"
+            )
             return None
     return None
 
@@ -99,4 +101,3 @@ def get_query_datas(config: Dict[str, Any]) -> Dict[str, str]:
         Dictionary mapping price feed names to query data hex strings
     """
     return config.get("query_datas", {})
-
