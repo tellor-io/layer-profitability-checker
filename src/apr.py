@@ -364,6 +364,7 @@ def calculate_reporter_aprs(
 
             reporter_aprs.append(
                 {
+                    "address": reporter["address"],
                     "moniker": reporter["moniker"] or reporter["address"][:12] + "...",
                     "power_trb": power_trb,
                     "apr": apr,
