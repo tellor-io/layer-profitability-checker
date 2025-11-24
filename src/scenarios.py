@@ -167,6 +167,7 @@ def plot_stake_scenarios(
     results, base_total_stake, avg_mint_amount, avg_fee, avg_block_time
 ):
     """Plot average APR vs total stake amount"""
+    plt.close("all")
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
     target_aprs = [100, 50, 20, 10, 5, 2, 1]
@@ -231,6 +232,7 @@ def plot_stake_scenarios(
 
     plt.tight_layout()
     plt.savefig("apr_by_total_stake.png", dpi=300, bbox_inches="tight")
+    plt.close()
     print("Generated apr_by_total_stake.png")
     print("\n")
     print("assuming a uniform distribution...")
@@ -260,9 +262,6 @@ def format_targets_for_display_with_apr(targets, current_total_stake, stake_resu
     current_stake_trb = current_total_stake
 
     display_dict = {}
-
-    # Add current stake info first
-    display_dict["Current Network Stake"] = f"{current_stake_trb:,.0f} TRB"
 
     # Calculate APR at current stake level by interpolating from results
     try:

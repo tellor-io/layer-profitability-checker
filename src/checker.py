@@ -2,7 +2,6 @@ from termcolor import colored
 
 from .apr import (
     calculate_apr_avgs,
-    calculate_break_even_stake,
     calculate_reporter_aprs,
     generate_apr_chart,
     print_reporter_apr_table,
@@ -26,6 +25,12 @@ from .display_helpers import (
 from .module_data.globalfee import get_min_gas_price
 from .module_data.mint import Minter
 from .module_data.reporter import get_reporters
+from .module_data.selectors import (
+    calculate_selector_profitability,
+    format_selector_data_for_display,
+    format_selector_profitability_for_display,
+    get_all_reporter_selectors,
+)
 from .module_data.staking import get_total_stake
 from .module_data.tipping import (
     format_tips_for_display,
@@ -449,38 +454,12 @@ def main():
     ]
     print_table("profitability stats", profit_headers, profit_rows)
 
-    # Calculate and display break-even stake
-    break_even_stake, break_even_mult = calculate_break_even_stake(
-        total_tokens_active,
-        avg_combined_mint_amount,
-        avg_fee,
-        avg_block_time,
-        median_stake,
-    )
-    if break_even_stake:
-        break_even_data = {
-            "Break-even Stake": f"{break_even_stake:.1f} TRB",
-        }
-        print_info_box("break-even analysis", break_even_data)
-
     # Convert loya to TRB for APR calculations
     avg_combined_mint_amount_trb = avg_combined_mint_amount * 1e-6
     avg_fee_trb = avg_fee * 1e-6
 
-    # Generate APR chart
-    print("Generated current_apr_chart.png")
-    generate_apr_chart(
-        total_tokens_active,
-        avg_combined_mint_amount_trb,
-        avg_fee_trb,
-        avg_block_time,
-        median_stake,
-        break_even_stake,
-        break_even_mult,
-    )
-
     # Calculate and display individual reporter APRs
-    print_section_header("CURRENT REPORTER APRs")
+    print_section_header("LIVE REPORTER APRs")
     reporter_aprs = calculate_reporter_aprs(
         reporters,
         total_tokens_active,
@@ -489,19 +468,72 @@ def main():
         avg_block_time,
     )
 
-    # Display both weighted average and median APRs in info box
+    # Display weighted average, median APRs, and break-even stake in info box
     weighted_avg_apr, median_apr = calculate_apr_avgs(reporter_aprs)
+
+    # Calculate break-even stake amount where APR = 0%
+    #
+    # profit_per_block = (stake / total_stake) * mint_per_block - (fee / 2)
+    # At break-even: profit_per_block = 0
+    # (stake / total_stake) * mint_per_block = fee / 2
+    # stake = (fee / 2) * total_stake / mint_per_block
+    #
+    # Formula: break_even = ((avg_fee / 2) * total_stake) / avg_rewards_per_block
+    calculated_break_even = (
+        (avg_fee_trb / 2) * total_tokens_active
+    ) / avg_combined_mint_amount_trb
+
     apr_averages = {
         "Weighted Avg APR": f"{weighted_avg_apr:.2f}%",
         "Median APR": f"{median_apr:.2f}%",
+        "Break-Even Stake (0% apr)": f"{calculated_break_even:.2f} TRB",
     }
-    print_info_box("apr averages", apr_averages)
+    print_info_box("current reporter metrics", apr_averages)
 
     print_reporter_apr_table(reporter_aprs)
+
+    # Generate APR chart with break-even point
+    generate_apr_chart(
+        total_tokens_active,
+        avg_combined_mint_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
+        median_stake,
+        calculated_break_even,
+        active_validator_stakes,
+    )
 
     print(
         "\n  To see your max apr in the current network state, check current_apr_chart.png"
     )
+
+    # Selector profitability analysis
+    print_section_header("SELECTOR PROFITABILITY")
+
+    # Get selector data for all reporters
+    selector_data = get_all_reporter_selectors(rest_endpoint, reporters)
+
+    if selector_data:
+        selector_headers, selector_rows = format_selector_data_for_display(
+            selector_data
+        )
+        print_table("reporter selectors", selector_headers, selector_rows)
+    else:
+        print("\n  No selector data available.")
+
+    # Calculate and display individual selector profitability
+    print("\n")
+    selector_profits = calculate_selector_profitability(
+        rest_endpoint, reporters, reporter_aprs
+    )
+
+    if selector_profits:
+        profit_headers, profit_rows = format_selector_profitability_for_display(
+            selector_profits
+        )
+        print_table("selector expected yearly earnings", profit_headers, profit_rows)
+    else:
+        print("  No selector profitability data available.")
 
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
@@ -513,7 +545,7 @@ def main():
     target_display = format_targets_for_display_with_apr(
         targets, total_tokens_active, stake_results
     )
-    print_info_box("APR target points", target_display, separators=[2])
+    print_info_box("APR target points", target_display, separators=[1])
 
     # Calculate current APR for CSV export
     import numpy as np
