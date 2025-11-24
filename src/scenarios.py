@@ -167,7 +167,7 @@ def plot_stake_scenarios(
     results, base_total_stake, avg_mint_amount, avg_fee, avg_block_time
 ):
     """Plot average APR vs total stake amount"""
-    plt.close('all')
+    plt.close("all")
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
     target_aprs = [100, 50, 20, 10, 5, 2, 1]

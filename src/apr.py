@@ -45,9 +45,11 @@ def generate_apr_chart(
     """Generate APR chart for different stake amounts"""
     # All inputs are in TRB (converted at caller site)
     # Determine stake range from 0 to slightly above highest validator stake
-    max_validator_stake = max(active_validator_stakes) if active_validator_stakes else median_stake * 2.0
+    max_validator_stake = (
+        max(active_validator_stakes) if active_validator_stakes else median_stake * 2.0
+    )
     max_stake = max_validator_stake * 1.1  # 10% above highest stake
-    
+
     # Start from a very small non-zero value to avoid division by zero
     min_stake = max_stake * 0.001  # 0.1% of max stake
     stake_amounts = np.linspace(min_stake, max_stake, 100)
@@ -58,9 +60,9 @@ def generate_apr_chart(
             stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
         )
         aprs.append(apr)
-    
+
     # Create the plot - close any existing figures first
-    plt.close('all')
+    plt.close("all")
     plt.figure(figsize=(12, 8))
     plt.plot(stake_amounts, aprs, linewidth=2, color="blue")
     plt.xlabel("Individual Stake Amount (TRB)", fontsize=12)
@@ -79,21 +81,35 @@ def generate_apr_chart(
     if break_even_stake and break_even_stake <= max_stake:
         # Calculate the actual APR at break-even stake
         break_even_apr = calculate_apr_by_stake(
-            break_even_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+            break_even_stake,
+            total_tokens_active,
+            avg_mint_amount,
+            avg_fee,
+            avg_block_time,
         )
-        
+
         plt.plot(
-            break_even_stake, break_even_apr, "ro", markersize=10, label="Break-even", zorder=5
+            break_even_stake,
+            break_even_apr,
+            "ro",
+            markersize=10,
+            label="Break-even",
+            zorder=5,
         )
-        
+
         # Add text label to the right of the dot
         plt.text(
             break_even_stake + (stake_range * 0.02),  # Slightly to the right
             break_even_apr,
             f"Break-even point ({break_even_stake:.2f} TRB, ~0% APR)",
             fontsize=11,
-            verticalalignment='center',
-            bbox={"boxstyle": "round,pad=0.5", "facecolor": "white", "alpha": 0.9, "edgecolor": "red"},
+            verticalalignment="center",
+            bbox={
+                "boxstyle": "round,pad=0.5",
+                "facecolor": "white",
+                "alpha": 0.9,
+                "edgecolor": "red",
+            },
         )
 
     plt.legend()
