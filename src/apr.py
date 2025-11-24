@@ -24,14 +24,12 @@ def calculate_break_even_stake(
     total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
 ):
     """Calculate the break-even stake amount where APR is approximately 0%"""
-    # Search more precisely in the range where we expect break-even
-    for test_mult in np.linspace(0.05, 0.25, 2000):  # More points in likely range
-        test_stake = median_stake * test_mult
-        test_apr = calculate_apr_by_stake(
-            test_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
-        )
-        if abs(test_apr) < 1.0:  # Within 1% of zero
-            return test_stake, test_mult
+    # Direct calculation: At break-even, profit_per_block = 0
+    # stake = (fee / 2) * total_stake / mint_per_block
+    if avg_mint_amount > 0:
+        break_even_stake = ((avg_fee / 2) * total_tokens_active) / avg_mint_amount
+        break_even_mult = break_even_stake / median_stake if median_stake > 0 else 0
+        return break_even_stake, break_even_mult
     return None, None
 
 
@@ -42,12 +40,16 @@ def generate_apr_chart(
     avg_block_time,
     median_stake,
     break_even_stake,
-    break_even_mult,
+    active_validator_stakes,
 ):
     """Generate APR chart for different stake amounts"""
-    # Create stake range from 1% to 200% of median stake
-    min_stake = median_stake * 0.01
-    max_stake = median_stake * 2.0
+    # All inputs are in TRB (converted at caller site)
+    # Determine stake range from 0 to slightly above highest validator stake
+    max_validator_stake = max(active_validator_stakes) if active_validator_stakes else median_stake * 2.0
+    max_stake = max_validator_stake * 1.1  # 10% above highest stake
+    
+    # Start from a very small non-zero value to avoid division by zero
+    min_stake = max_stake * 0.001  # 0.1% of max stake
     stake_amounts = np.linspace(min_stake, max_stake, 100)
 
     aprs = []
@@ -56,59 +58,48 @@ def generate_apr_chart(
             stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
         )
         aprs.append(apr)
-
-    # get break even apr if break_even_stake is provided
-    if break_even_stake:
-        break_even_apr = calculate_apr_by_stake(
-            break_even_stake,
-            total_tokens_active,
-            avg_mint_amount,
-            avg_fee,
-            avg_block_time,
-        )
-
-    # Create the plot
+    
+    # Create the plot - close any existing figures first
+    plt.close('all')
     plt.figure(figsize=(12, 8))
-    plt.plot(stake_amounts * 1e-6, aprs, linewidth=2, color="blue")
+    plt.plot(stake_amounts, aprs, linewidth=2, color="blue")
     plt.xlabel("Individual Stake Amount (TRB)", fontsize=12)
     plt.ylabel("Current APR (%)", fontsize=12)
     plt.title("Current APR vs Individual Stake Amount", fontsize=14, fontweight="bold")
     plt.grid(True, alpha=0.3)
 
-    # Set y-axis limits
+    # Set axis limits
+    plt.xlim(0, max_stake)
     plt.ylim(-500, 1000)
 
-    # Add median stake point
-    median_apr = calculate_apr_by_stake(
-        median_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
-    )
-    plt.plot(median_stake, median_apr, "ro", markersize=8, label="Current Median")
-    plt.annotate(
-        f"({median_stake:.2f} TRB, {median_apr:.1f}% APR)",
-        xy=(median_stake, median_apr),
-        xytext=(median_stake + 10, median_apr + 50),
-        fontsize=10,
-        fontweight="bold",
-        arrowprops={"arrowstyle": "->", "color": "red", "alpha": 0.7},
-    )
+    # Calculate stake range for positioning
+    stake_range = stake_amounts[-1] - stake_amounts[0]
 
-    # Add break-even point if found
-    if break_even_stake:
-        plt.plot(
-            break_even_stake, break_even_apr, "go", markersize=8, label="Break-even"
+    # Add break-even point at actual APR on the curve
+    if break_even_stake and break_even_stake <= max_stake:
+        # Calculate the actual APR at break-even stake
+        break_even_apr = calculate_apr_by_stake(
+            break_even_stake, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
         )
-        plt.annotate(
-            f"({break_even_stake:.2f} TRB, {break_even_apr:.1f}% APR)",
-            xy=(break_even_stake, break_even_apr),
-            xytext=(break_even_stake + 5, break_even_apr + 80),
-            fontsize=10,
-            fontweight="bold",
-            arrowprops={"arrowstyle": "->", "color": "green", "alpha": 0.7},
+        
+        plt.plot(
+            break_even_stake, break_even_apr, "ro", markersize=10, label="Break-even", zorder=5
+        )
+        
+        # Add text label to the right of the dot
+        plt.text(
+            break_even_stake + (stake_range * 0.02),  # Slightly to the right
+            break_even_apr,
+            f"Break-even point ({break_even_stake:.2f} TRB, ~0% APR)",
+            fontsize=11,
+            verticalalignment='center',
+            bbox={"boxstyle": "round,pad=0.5", "facecolor": "white", "alpha": 0.9, "edgecolor": "red"},
         )
 
     plt.legend()
     plt.tight_layout()
     plt.savefig("current_apr_chart.png", dpi=300, bbox_inches="tight")
+    plt.close()
 
     return stake_amounts, aprs
 
