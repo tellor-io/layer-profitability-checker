@@ -25,12 +25,6 @@ from .display_helpers import (
 from .module_data.globalfee import get_min_gas_price
 from .module_data.mint import Minter
 from .module_data.reporter import get_reporters
-from .module_data.selectors import (
-    calculate_selector_profitability,
-    format_selector_data_for_display,
-    format_selector_profitability_for_display,
-    get_all_reporter_selectors,
-)
 from .module_data.staking import get_total_stake
 from .module_data.tipping import (
     format_tips_for_display,
@@ -506,34 +500,6 @@ def main():
     print(
         "\n  To see your max apr in the current network state, check current_apr_chart.png"
     )
-
-    # Selector profitability analysis
-    print_section_header("SELECTOR PROFITABILITY")
-
-    # Get selector data for all reporters
-    selector_data = get_all_reporter_selectors(rest_endpoint, reporters)
-
-    if selector_data:
-        selector_headers, selector_rows = format_selector_data_for_display(
-            selector_data
-        )
-        print_table("reporter selectors", selector_headers, selector_rows)
-    else:
-        print("\n  No selector data available.")
-
-    # Calculate and display individual selector profitability
-    print("\n")
-    selector_profits = calculate_selector_profitability(
-        rest_endpoint, reporters, reporter_aprs
-    )
-
-    if selector_profits:
-        profit_headers, profit_rows = format_selector_profitability_for_display(
-            selector_profits
-        )
-        print_table("selector expected yearly earnings", profit_headers, profit_rows)
-    else:
-        print("  No selector profitability data available.")
 
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
