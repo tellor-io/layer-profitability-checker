@@ -484,5 +484,3 @@ def export_all_data(
     print("  ✓ Exported APR by total stake scenarios")
 
     print("\nAll data exported successfully to ./data/ directory")
-
-    print("\nAll data exported successfully to ./data/ directory")
