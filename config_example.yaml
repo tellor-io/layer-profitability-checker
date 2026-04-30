@@ -1,10 +1,11 @@
-# RPC endpoint for mint events query (required)
-# rpc_endpoint: http://localhost:26657
-# rest_endpoint: http://localhost:1317
-# rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
-# rest_endpoint: https://node-palmito.tellorlayer.com
-rpc_endpoint: https://mainnet.tellorlayer.com/rpc
-rest_endpoint: https://mainnet.tellorlayer.com
+# RPC and REST endpoints for each supported network (required)
+networks:
+  - name: mainnet
+    rpc_endpoint: https://mainnet.tellorlayer.com/rpc
+    rest_endpoint: https://mainnet.tellorlayer.com
+  - name: testnet
+    rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
+    rest_endpoint: https://node-palmito.tellorlayer.com
 
 # Minimum gas price (in loya per gas unit) - used for cost calculations
 # If not specified, the tool will try to query this from the chain

@@ -17,8 +17,8 @@ uv sync
 
 cp config_example.yaml config.yaml
 
-# Configure your RPC endpoint
-# Edit config.yaml and set your RPC endpoint URL
+# Configure your RPC endpoints
+# Edit config.yaml and set your mainnet/testnet endpoint URLs
 
 # Run the tool
 uv run prof-check
@@ -37,7 +37,13 @@ while true; do prof-check; sleep 600; done
 
 Edit `config.yaml`:
 ```yaml
-rpc_endpoint: http://localhost:26657  # Required - RPC endpoint URL
+networks:
+  - name: mainnet
+    rpc_endpoint: https://mainnet.tellorlayer.com/rpc
+    rest_endpoint: https://mainnet.tellorlayer.com
+  - name: testnet
+    rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
+    rest_endpoint: https://node-palmito.tellorlayer.com
 account_address: your_address_here  # Optional
 query_datas: [...]
 ```
@@ -156,7 +162,7 @@ The tool makes several different types of calls to gather blockchain data:
 ### **Key Technical Details**
 
 - **Unified RPC Client**: All calls go through `TellorRPCClient` for consistency
-- **Endpoint Conversion**: RPC endpoints are converted to REST endpoints by removing `/rpc`
+- **Network Selection**: Mainnet and testnet RPC/REST endpoints are configured separately and selected at run time
 - **Error Handling**: Each call has fallback mechanisms and timeout handling
 - **Data Processing**: Raw blockchain data is processed and converted to user-friendly formats
 - **No Binary Dependencies**: All queries use HTTP calls, no need for synced nodes

@@ -1,5 +1,6 @@
 import argparse
 import sys
+from typing import Any, Dict
 
 from termcolor import colored
 
@@ -22,7 +23,14 @@ from .chain_data.tx_data import (
     print_submit_value_analysis,
     query_recent_reports,
 )
-from .config import get_rest_endpoint, get_rpc_endpoint, load_config
+from .config import (
+    get_default_network_config,
+    get_network_config,
+    get_rest_endpoint,
+    get_rpc_endpoint,
+    load_config,
+    validate_networks,
+)
 from .csv_export import export_all_data
 from .display_helpers import (
     print_box_and_whisker,
@@ -123,40 +131,74 @@ def interactive_mode_selection() -> str:
         print(colored("  Invalid choice. Please enter 1 or 2.", "red"))
 
 
+def interactive_network_selection(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Prompt user to select which configured network to use."""
+    validate_networks(config)
+
+    print("\n  Select network:\n")
+    print(colored("  [1]", "green", attrs=["bold"]) + " Mainnet")
+    print(colored("  [2]", "yellow", attrs=["bold"]) + " Testnet\n")
+
+    while True:
+        choice = input(colored("  Enter choice (1 or 2): ", "cyan"))
+        if choice == "1":
+            return get_network_config(config, "mainnet")
+        if choice == "2":
+            return get_network_config(config, "testnet")
+        print(colored("  Invalid choice. Please enter 1 or 2.", "red"))
+
+
+def select_network_for_run(config: Dict[str, Any], *, prompt: bool) -> Dict[str, Any]:
+    """Select a network by prompt for TTY runs or mainnet for non-TTY runs."""
+    if prompt and sys.stdin.isatty():
+        return interactive_network_selection(config)
+    return get_default_network_config(config)
+
+
 def main():
     args = parse_args()
 
-    # Determine mode
-    if args.rewards:
-        # Direct rewards mode via flag
-        run_rewards_mode(args.rewards, args.config)
-    elif args.profitability:
-        # Direct profitability mode via flag
-        run_profitability_mode(args.config, args.stake_trb)
-    else:
-        # Interactive mode
-        choice = interactive_mode_selection()
-        if choice == "1":
-            run_profitability_mode(args.config, args.stake_trb)
+    try:
+        config = load_config(args.config)
+
+        # Determine mode
+        if args.rewards:
+            # Direct rewards mode via flag
+            network_config = select_network_for_run(config, prompt=True)
+            run_rewards_mode(args.rewards, config, network_config)
+        elif args.profitability:
+            # Direct profitability mode via flag
+            network_config = select_network_for_run(config, prompt=True)
+            run_profitability_mode(config, network_config, args.stake_trb)
         else:
-            address = input(colored("\n  Enter reporter address: ", "cyan")).strip()
-            if address:
-                run_rewards_mode(address, args.config)
+            # Interactive mode
+            choice = interactive_mode_selection()
+            network_config = interactive_network_selection(config)
+            if choice == "1":
+                run_profitability_mode(config, network_config, args.stake_trb)
             else:
-                print(colored("  No address provided. Exiting.", "red"))
-                sys.exit(1)
+                address = input(colored("\n  Enter reporter address: ", "cyan")).strip()
+                if address:
+                    run_rewards_mode(address, config, network_config)
+                else:
+                    print(colored("  No address provided. Exiting.", "red"))
+                    sys.exit(1)
+    except ValueError as e:
+        print(colored(f"  Config error: {e}", "red"))
+        sys.exit(1)
 
 
-def run_rewards_mode(address: str, config_path: str):
+def run_rewards_mode(
+    address: str, config: Dict[str, Any], network_config: Dict[str, Any]
+):
     """Run historical rewards tracking mode."""
     print_welcome_message()
 
-    # Load config
-    config = load_config(config_path)
-
     # Initialize RPC client
-    rpc_endpoint = get_rpc_endpoint(config)
-    rest_endpoint = get_rest_endpoint(config)
+    network_name = network_config["name"]
+    rpc_endpoint = get_rpc_endpoint(network_config)
+    rest_endpoint = get_rest_endpoint(network_config)
+    print(f"Using network: {network_name}")
     print(f"Using RPC endpoint: {rpc_endpoint}")
     print(f"Using REST endpoint: {rest_endpoint}")
     rpc_client = TellorRPCClient(rpc_endpoint, rest_endpoint)
@@ -174,16 +216,17 @@ def run_rewards_mode(address: str, config_path: str):
     print_section_header("END")
 
 
-def run_profitability_mode(config_path: str, stake_trb: float = None):
+def run_profitability_mode(
+    config: Dict[str, Any], network_config: Dict[str, Any], stake_trb: float = None
+):
     """Run network profitability analysis mode."""
     print_welcome_message()
 
-    # load configuration
-    config = load_config(config_path)
-
     # Initialize RPC client with both RPC and REST endpoints
-    rpc_endpoint = get_rpc_endpoint(config)
-    rest_endpoint = get_rest_endpoint(config)
+    network_name = network_config["name"]
+    rpc_endpoint = get_rpc_endpoint(network_config)
+    rest_endpoint = get_rest_endpoint(network_config)
+    print(f"Using network: {network_name}")
     print(f"Using RPC endpoint: {rpc_endpoint}")
     print(f"Using REST endpoint: {rest_endpoint}")
     rpc_client = TellorRPCClient(rpc_endpoint, rest_endpoint)

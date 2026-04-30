@@ -28,9 +28,19 @@ def mock_abci_client():
 def sample_config():
     """Sample configuration for testing."""
     return {
-        "rpc_endpoint": "http://localhost:26657",
+        "networks": [
+            {
+                "name": "mainnet",
+                "rpc_endpoint": "https://mainnet.tellorlayer.com/rpc",
+                "rest_endpoint": "https://mainnet.tellorlayer.com",
+            },
+            {
+                "name": "testnet",
+                "rpc_endpoint": "https://node-palmito.tellorlayer.com/rpc",
+                "rest_endpoint": "https://node-palmito.tellorlayer.com",
+            },
+        ],
         "account_address": "tellor1test123456789",
-        "rest_endpoint": "http://localhost:1317",
     }
 
 
