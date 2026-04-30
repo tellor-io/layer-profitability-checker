@@ -1,10 +1,10 @@
 # RPC endpoint for mint events query (required)
-rpc_endpoint: http://localhost:26657
-rest_endpoint: http://localhost:1317
+# rpc_endpoint: http://localhost:26657
+# rest_endpoint: http://localhost:1317
 # rpc_endpoint: https://node-palmito.tellorlayer.com/rpc
 # rest_endpoint: https://node-palmito.tellorlayer.com
-# rpc_endpoint: https://mainnet.tellorlayer.com/rpc
-# rest_endpoint: https://mainnet.tellorlayer.com
+rpc_endpoint: https://mainnet.tellorlayer.com/rpc
+rest_endpoint: https://mainnet.tellorlayer.com
 
 # Minimum gas price (in loya per gas unit) - used for cost calculations
 # If not specified, the tool will try to query this from the chain
@@ -13,6 +13,18 @@ rest_endpoint: http://localhost:1317
 
 # Optional: Your account address for checking available reporter rewards
 # account_address: tellor1alcefjzkk37qmfrnel8q4eruyll0pc8arxhxxw
+
+# Historical Rewards Tracking
+# ---------------------------
+# Use the --rewards flag to track actual rewards received by an address:
+#   prof-check --rewards tellor1your_address_here
+# 
+# This queries the following events from MsgWithdrawTip transactions:
+#   - rewards_distributed: Reporter rewards (selector, amount, total_tips)
+#   - tip_withdrawn: Tips withdrawn (selector, validator, amount, shares)  
+#   - withdraw_rewards: Staking rewards (amount, validator, delegator)
+#
+# Shows stats for 1d, 7d, 30d periods and all-time totals.
 
 # Price feed queryDatas for checking what is tipped
 query_datas:

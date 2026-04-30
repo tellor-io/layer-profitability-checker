@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .apr import calculate_apr_by_stake
+from .apr import LOYA_PER_TRB, REPORT_INTERVAL_BLOCKS, calculate_apr_by_stake
 
 # Set random seed for reproducible results
 np.random.seed(42)
@@ -64,18 +64,18 @@ def generate_stake_amount_scenarios(
     stake_amounts_trb = np.linspace(
         100, 2000000, 1000
     )  # Start at 100 TRB to avoid division by zero
-    stake_amounts = stake_amounts_trb * 1e6  # Convert TRB to loya
+    stake_amounts = stake_amounts_trb * LOYA_PER_TRB  # Convert TRB to loya
 
     # Calculate blocks per year
     blocks_per_year = (365 * 24 * 3600) / avg_block_time
 
     # Calculate reporting frequency (every other block)
-    reports_per_block = 0.5
+    reports_per_block = 1 / REPORT_INTERVAL_BLOCKS
     reports_per_year = blocks_per_year * reports_per_block
 
     # Convert TRB inputs to loya for calculations
-    avg_mint_amount_loya = avg_mint_amount * 1e6
-    avg_fee_loya = avg_fee * 1e6
+    avg_mint_amount_loya = avg_mint_amount * LOYA_PER_TRB
+    avg_fee_loya = avg_fee * LOYA_PER_TRB
 
     # Total mint per year (TBR)
     total_mint_per_year = avg_mint_amount_loya * blocks_per_year
@@ -87,8 +87,7 @@ def generate_stake_amount_scenarios(
     weighted_avg_aprs = []
 
     for total_stake in stake_amounts:
-        # APR = (total_mint_per_year - total_fees_per_year) / total_stake * 100
-        # This gives the APR that any validator would get at this total stake level
+        # APR for a representative reporter stake at this total network stake level.
         net_rewards_per_year = total_mint_per_year - total_fees_per_year
         apr = (net_rewards_per_year / total_stake) * 100
         weighted_avg_aprs.append(apr)
@@ -118,12 +117,12 @@ def find_apr_targets(
     blocks_per_year = (365 * 24 * 3600) / avg_block_time
 
     # Calculate reporting frequency (every other block)
-    reports_per_block = 0.5
+    reports_per_block = 1 / REPORT_INTERVAL_BLOCKS
     reports_per_year = blocks_per_year * reports_per_block
 
     # Convert TRB inputs to loya for calculations
-    avg_mint_amount_loya = avg_mint_amount * 1e6
-    avg_fee_loya = avg_fee * 1e6
+    avg_mint_amount_loya = avg_mint_amount * LOYA_PER_TRB
+    avg_fee_loya = avg_fee * LOYA_PER_TRB
 
     # Total mint per year (TBR)
     total_mint_per_year = avg_mint_amount_loya * blocks_per_year
@@ -144,11 +143,9 @@ def find_apr_targets(
     ]
 
     for total_stake_trb in total_stake_levels_trb:
-        total_stake_loya = total_stake_trb * 1e6  # Convert to loya
+        total_stake_loya = total_stake_trb * LOYA_PER_TRB  # Convert to loya
 
-        # Calculate APR for a validator at this total stake level
-        # APR = (total_mint_per_year - total_fees_per_year) / total_stake * 100
-        # This gives the APR that any validator would get at this total stake level
+        # APR for a representative reporter stake at this total network stake level.
 
         net_rewards_per_year = total_mint_per_year - total_fees_per_year
         apr = (net_rewards_per_year / total_stake_loya) * 100
@@ -179,7 +176,7 @@ def plot_stake_scenarios(
     ]
 
     # Current stake line
-    current_stake_trb = base_total_stake * 1e-6
+    current_stake_trb = base_total_stake
 
     # Plot Average APR
     stake_amounts_trb = results["stake_amounts_trb"]

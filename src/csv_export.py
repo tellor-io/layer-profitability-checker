@@ -389,6 +389,99 @@ def export_network_profitability_summary(
         )
 
 
+def export_dispute_history(dispute_history):
+    """Export historical dispute rows and one summary snapshot."""
+    data_dir = ensure_data_directory()
+
+    rows_path = os.path.join(data_dir, "dispute_history.csv")
+    rows_file_exists = os.path.isfile(rows_path)
+    with open(rows_path, "a", newline="") as csvfile:
+        fieldnames = [
+            "timestamp",
+            "dispute_id",
+            "category",
+            "status",
+            "is_open",
+            "vote_result",
+            "fee_paid_loya",
+            "slash_amount_loya",
+            "burn_amount_loya",
+            "voter_reward_loya",
+            "burned_loya",
+            "fee_paid_trb",
+            "slash_amount_trb",
+            "burn_amount_trb",
+            "voter_reward_trb",
+            "burned_trb",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not rows_file_exists:
+            writer.writeheader()
+
+        timestamp = datetime.now().isoformat()
+        for record in dispute_history.records:
+            writer.writerow(
+                {
+                    "timestamp": timestamp,
+                    "dispute_id": record.dispute_id,
+                    "category": record.category,
+                    "status": record.status,
+                    "is_open": record.is_open,
+                    "vote_result": record.vote_result,
+                    "fee_paid_loya": record.fee_paid_loya,
+                    "slash_amount_loya": record.slash_amount_loya,
+                    "burn_amount_loya": record.burn_amount_loya,
+                    "voter_reward_loya": record.voter_reward_loya,
+                    "burned_loya": record.burned_loya,
+                    "fee_paid_trb": f"{record.fee_paid_loya / 1_000_000:.6f}",
+                    "slash_amount_trb": f"{record.slash_amount_loya / 1_000_000:.6f}",
+                    "burn_amount_trb": f"{record.burn_amount_loya / 1_000_000:.6f}",
+                    "voter_reward_trb": f"{record.voter_reward_loya / 1_000_000:.6f}",
+                    "burned_trb": f"{record.burned_loya / 1_000_000:.6f}",
+                }
+            )
+
+    summary_path = os.path.join(data_dir, "dispute_summary.csv")
+    summary_file_exists = os.path.isfile(summary_path)
+    with open(summary_path, "a", newline="") as csvfile:
+        fieldnames = [
+            "timestamp",
+            "total_disputes",
+            "open_disputes",
+            "total_fee_paid_loya",
+            "total_slash_amount_loya",
+            "total_burn_amount_loya",
+            "total_voter_reward_loya",
+            "total_burned_loya",
+            "total_fee_paid_trb",
+            "total_slash_amount_trb",
+            "total_burn_amount_trb",
+            "total_voter_reward_trb",
+            "total_burned_trb",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not summary_file_exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "total_disputes": dispute_history.total_disputes,
+                "open_disputes": dispute_history.open_disputes,
+                "total_fee_paid_loya": dispute_history.total_fee_paid_loya,
+                "total_slash_amount_loya": dispute_history.total_slash_amount_loya,
+                "total_burn_amount_loya": dispute_history.total_burn_amount_loya,
+                "total_voter_reward_loya": dispute_history.total_voter_reward_loya,
+                "total_burned_loya": dispute_history.total_burned_loya,
+                "total_fee_paid_trb": f"{dispute_history.total_fee_paid_loya / 1_000_000:.6f}",
+                "total_slash_amount_trb": f"{dispute_history.total_slash_amount_loya / 1_000_000:.6f}",
+                "total_burn_amount_trb": f"{dispute_history.total_burn_amount_loya / 1_000_000:.6f}",
+                "total_voter_reward_trb": f"{dispute_history.total_voter_reward_loya / 1_000_000:.6f}",
+                "total_burned_trb": f"{dispute_history.total_burned_loya / 1_000_000:.6f}",
+            }
+        )
+
+
 def export_all_data(
     tbr_data,
     reporting_costs_data,
@@ -396,6 +489,7 @@ def export_all_data(
     profitability_data,
     apr_data,
     stake_scenario_data,
+    dispute_history=None,
 ):
     """
     Export all profitability data to CSV files
@@ -482,5 +576,9 @@ def export_all_data(
         stake_scenario_data["stake_results"],
     )
     print("  ✓ Exported APR by total stake scenarios")
+
+    if dispute_history is not None:
+        export_dispute_history(dispute_history)
+        print("  ✓ Exported dispute history")
 
     print("\nAll data exported successfully to ./data/ directory")

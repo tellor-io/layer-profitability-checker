@@ -65,6 +65,22 @@ class TestTellorRPCClient:
         assert timestamp.year == 2024
 
     @patch("subprocess.run")
+    def test_get_block_timestamp_truncates_nanoseconds(self, mock_subprocess):
+        """Test block timestamp parsing for CometBFT nanosecond precision."""
+        block_response = Mock()
+        block_response.stdout = (
+            '{"result": {"block": {"header": '
+            '{"time": "2026-04-29T12:34:56.123456789Z"}}}}'
+        )
+        mock_subprocess.return_value = block_response
+
+        client = TellorRPCClient("http://localhost:26657")
+        timestamp = client.get_block_timestamp(12345)
+
+        assert timestamp.year == 2026
+        assert timestamp.microsecond == 123456
+
+    @patch("subprocess.run")
     def test_get_validators_success(self, mock_subprocess):
         """Test successful validators retrieval."""
         # Mock successful response

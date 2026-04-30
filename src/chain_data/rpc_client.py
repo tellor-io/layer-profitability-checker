@@ -6,22 +6,35 @@ Uses configured RPC and REST API endpoints directly.
 import json
 import subprocess
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+
+def _derive_rest_endpoint(rpc_endpoint: str) -> str:
+    """Best-effort REST endpoint for older one-argument client call sites."""
+    endpoint = rpc_endpoint.rstrip("/")
+    if endpoint.endswith("/rpc"):
+        return endpoint[: -len("/rpc")]
+    if endpoint.endswith(":26657"):
+        return f"{endpoint[: -len(':26657')]}:1317"
+    return endpoint
 
 
 class TellorRPCClient:
     """Unified RPC client for Tellor Layer blockchain queries."""
 
-    def __init__(self, rpc_endpoint: str, rest_endpoint: str):
+    def __init__(self, rpc_endpoint: str, rest_endpoint: Optional[str] = None):
         """
         Initialize RPC client with configured endpoints.
 
         Args:
             rpc_endpoint: RPC endpoint URL
-            rest_endpoint: REST API endpoint URL
+            rest_endpoint: REST API endpoint URL. If omitted, derive one from
+                rpc_endpoint for backwards compatibility with older call sites.
         """
         self.rpc_endpoint = rpc_endpoint.rstrip("/")
-        self.rest_endpoint = rest_endpoint.rstrip("/")
+        self.rest_endpoint = (
+            rest_endpoint or _derive_rest_endpoint(rpc_endpoint)
+        ).rstrip("/")
 
     def query_rpc(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Query the RPC endpoint directly."""
@@ -54,20 +67,9 @@ class TellorRPCClient:
         response = self.query_rpc("status")
         return response["result"]["node_info"]["network"]
 
-    def get_block_height_and_timestamp(self) -> tuple[int, datetime]:
-        """Get current block height and timestamp."""
-        from datetime import datetime
-
-        response = self.query_rpc("status")
-        latest_block_height = int(
-            response["result"]["sync_info"]["latest_block_height"]
-        )
-
-        # Get block details
-        block_response = self.query_rpc("block", {"height": str(latest_block_height)})
-        timestamp_str = block_response["result"]["block"]["header"]["time"]
-
-        # Parse timestamp string to datetime object
+    @staticmethod
+    def _parse_block_timestamp(timestamp_str: str) -> datetime:
+        """Parse a CometBFT block timestamp into a datetime."""
         # Handle nanoseconds by truncating to microseconds (Python only supports up to microseconds)
         if "." in timestamp_str:
             if timestamp_str.endswith("Z"):
@@ -83,7 +85,23 @@ class TellorRPCClient:
                 frac = frac[:6].ljust(6, "0")  # Truncate to microseconds
                 timestamp_str = f"{date_part}.{frac}+{tz}"
 
-        timestamp = datetime.fromisoformat(timestamp_str)
+        return datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+
+    def get_block_timestamp(self, height: int) -> datetime:
+        """Get the timestamp for a specific block height."""
+        block_response = self.query_rpc("block", {"height": str(height)})
+        timestamp_str = block_response["result"]["block"]["header"]["time"]
+        return self._parse_block_timestamp(timestamp_str)
+
+    def get_block_height_and_timestamp(self) -> tuple[int, datetime]:
+        """Get current block height and timestamp."""
+
+        response = self.query_rpc("status")
+        latest_block_height = int(
+            response["result"]["sync_info"]["latest_block_height"]
+        )
+
+        timestamp = self.get_block_timestamp(latest_block_height)
 
         return latest_block_height, timestamp
 

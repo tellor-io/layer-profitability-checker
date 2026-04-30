@@ -140,8 +140,8 @@ def calculate_selector_profitability(
         # Calculate reporter's yearly profit
         reporter_yearly_profit = reporter_power * (reporter_apr / 100.0)
 
-        # Calculate total selector pool (commission_rate% goes to selectors)
-        total_selector_pool = reporter_yearly_profit * commission_rate
+        # Commission goes to the reporter; the remainder is shared by selectors.
+        total_selector_pool = reporter_yearly_profit * (1 - commission_rate)
 
         # Get selector details
         selector_data = get_reporter_selectors(rest_endpoint, reporter_address)

@@ -3,13 +3,25 @@ import unicodedata
 import matplotlib.pyplot as plt
 import numpy as np
 
+LOYA_PER_TRB = 1_000_000
+REPORTER_REWARD_SHARE = 0.75
+VALIDATOR_REWARD_SHARE = 0.25
+REPORT_INTERVAL_BLOCKS = 2
+
 
 def calculate_apr_by_stake(
     stake_amount, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
 ):
-    """Calculate APR for a given stake amount"""
-    proportion_stake = stake_amount / total_tokens_active
-    profit_per_block = (proportion_stake * avg_mint_amount) - (avg_fee / 2)
+    """
+    Calculate APR for a given stake amount.
+
+    stake_amount, total_tokens_active, avg_mint_amount, and avg_fee must use the
+    same denomination. avg_mint_amount should be the reward stream available to
+    the participant being modeled, e.g. the 75% reporter TBR pool for reporters.
+    """
+    profit_per_block = calculate_profit_per_block(
+        stake_amount, total_tokens_active, avg_mint_amount, avg_fee
+    )
 
     # Convert to annual profit
     blocks_per_year = (365 * 24 * 3600) / avg_block_time
@@ -20,17 +32,92 @@ def calculate_apr_by_stake(
     return apr
 
 
+def calculate_profit_per_block(
+    stake_amount, total_tokens_active, avg_mint_amount, avg_fee
+):
+    """
+    Calculate net profit per block for a stake amount.
+
+    All monetary inputs must use the same denomination. For reporter economics,
+    avg_mint_amount should be the reporter reward pool per sampled block.
+    """
+    proportion_stake = stake_amount / total_tokens_active
+    return (proportion_stake * avg_mint_amount) - (
+        avg_fee / REPORT_INTERVAL_BLOCKS
+    )
+
+
+def calculate_stake_profit_projection(
+    stake_amount, total_tokens_active, avg_mint_amount, avg_fee, avg_block_time
+):
+    """
+    Return profitability metrics for one stake amount.
+
+    Inputs and returned profit values use the same denomination as stake_amount.
+    APR is returned as a human percentage.
+    """
+    profit_per_block = calculate_profit_per_block(
+        stake_amount, total_tokens_active, avg_mint_amount, avg_fee
+    )
+    blocks_per_day = 86400 / avg_block_time
+    annual_profit = profit_per_block * blocks_per_day * 365
+
+    return {
+        "stake_amount": stake_amount,
+        "profit_per_block": profit_per_block,
+        "profit_per_day": profit_per_block * blocks_per_day,
+        "profit_per_month": profit_per_block * blocks_per_day * 30,
+        "profit_per_year": annual_profit,
+        "apr": (annual_profit / stake_amount) * 100,
+    }
+
+
 def calculate_break_even_stake(
     total_tokens_active, avg_mint_amount, avg_fee, avg_block_time, median_stake
 ):
     """Calculate the break-even stake amount where APR is approximately 0%"""
     # Direct calculation: At break-even, profit_per_block = 0
-    # stake = (fee / 2) * total_stake / mint_per_block
+    # stake = (fee / report_interval_blocks) * total_stake / mint_per_block
     if avg_mint_amount > 0:
-        break_even_stake = ((avg_fee / 2) * total_tokens_active) / avg_mint_amount
+        break_even_stake = (
+            (avg_fee / REPORT_INTERVAL_BLOCKS) * total_tokens_active
+        ) / avg_mint_amount
         break_even_mult = break_even_stake / median_stake if median_stake > 0 else 0
         return break_even_stake, break_even_mult
     return None, None
+
+
+def reporter_reward_pool(total_reward_amount):
+    """Return the 75% reporter TBR pool from a total mint/extra-reward amount."""
+    return total_reward_amount * REPORTER_REWARD_SHARE
+
+
+def validator_reward_pool(total_reward_amount):
+    """Return the 25% validator pool from a total mint/extra-reward amount."""
+    return total_reward_amount * VALIDATOR_REWARD_SHARE
+
+
+def parse_commission_rate_percent(value):
+    """
+    Parse reporter commission into a human percentage.
+
+    The REST API has returned both decimal strings ("0.05") and Cosmos
+    LegacyDec integer strings ("50000000000000000"). Support both shapes.
+    """
+    if value in (None, ""):
+        return 0.0
+
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return float(text) * 100
+
+        raw = float(text)
+        if abs(raw) > 1:
+            return (raw / 1e18) * 100
+        return raw * 100
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def generate_apr_chart(
@@ -384,9 +471,9 @@ def calculate_reporter_aprs(
                     "moniker": reporter["moniker"] or reporter["address"][:12] + "...",
                     "power_trb": power_trb,
                     "apr": apr,
-                    "commission_rate": float(reporter["commission_rate"]) * 100
-                    if reporter["commission_rate"]
-                    else 0,
+                    "commission_rate": parse_commission_rate_percent(
+                        reporter.get("commission_rate")
+                    ),
                 }
             )
 

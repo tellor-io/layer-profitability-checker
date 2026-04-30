@@ -28,6 +28,7 @@ def query_mint_events(
             end_height = current_height
 
         print(f"Querying mint events from blocks {start_height} to {end_height}...")
+        sampled_block_count = end_height - start_height + 1
 
         total_tbr_minted = 0
         total_extra_rewards = 0
@@ -98,6 +99,9 @@ def query_mint_events(
             "tbr_event_count": len(tbr_events),
             "extra_rewards_event_count": len(extra_rewards_events),
             "total_event_count": len(tbr_events) + len(extra_rewards_events),
+            "start_height": start_height,
+            "end_height": end_height,
+            "sampled_block_count": sampled_block_count,
         }
 
     else:

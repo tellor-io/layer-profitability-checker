@@ -1,10 +1,19 @@
+import argparse
+import sys
+
 from termcolor import colored
 
 from .apr import (
+    LOYA_PER_TRB,
+    REPORT_INTERVAL_BLOCKS,
     calculate_apr_avgs,
+    calculate_break_even_stake,
     calculate_reporter_aprs,
+    calculate_stake_profit_projection,
     generate_apr_chart,
     print_reporter_apr_table,
+    reporter_reward_pool,
+    validator_reward_pool,
 )
 from .chain_data.abci_queries import TellorABCIClient
 from .chain_data.block_data import get_average_block_time
@@ -22,6 +31,8 @@ from .display_helpers import (
     print_section_header,
     print_table,
 )
+from .historical_rewards import run_historical_rewards_check
+from .module_data.dispute import fetch_dispute_history, format_dispute_rows
 from .module_data.globalfee import get_min_gas_price
 from .module_data.mint import Minter
 from .module_data.reporter import get_reporters
@@ -43,11 +54,132 @@ from .rewards import (
 from .scenarios import format_targets_for_display_with_apr, run_scenarios_analysis
 
 
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Tellor Layer Profitability Checker",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  prof-check                      # Interactive mode - choose what to run
+  prof-check --profitability      # Run network profitability analysis
+  prof-check --rewards ADDRESS    # Check historical rewards for ADDRESS
+  prof-check -r tellor1abc...     # Short form for rewards check
+        """,
+    )
+
+    parser.add_argument(
+        "--profitability",
+        "-p",
+        action="store_true",
+        help="Run network profitability analysis (staking, reporting, APR)",
+    )
+
+    parser.add_argument(
+        "--rewards",
+        "-r",
+        metavar="ADDRESS",
+        type=str,
+        help="Check historical rewards for a specific reporter address",
+    )
+
+    parser.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        default="config.yaml",
+        help="Path to config file (default: config.yaml)",
+    )
+
+    parser.add_argument(
+        "--stake-trb",
+        type=float,
+        help="Project profitability for a specific reporter stake amount in TRB",
+    )
+
+    return parser.parse_args()
+
+
+def interactive_mode_selection() -> str:
+    """Prompt user to select which mode to run."""
+    print("\n" + colored("┌" + "─" * 50 + "┐", "cyan"))
+    print(
+        colored("│", "cyan")
+        + " TELLOR LAYER PROFITABILITY CHECKER ".center(50)
+        + colored("│", "cyan")
+    )
+    print(colored("└" + "─" * 50 + "┘", "cyan"))
+
+    print("\n  Select analysis mode:\n")
+    print(colored("  [1]", "green", attrs=["bold"]) + " Network Profitability Analysis")
+    print("      Staking stats, APR calculations, reporting costs\n")
+    print(colored("  [2]", "yellow", attrs=["bold"]) + " Historical Rewards Tracking")
+    print("      Check actual rewards received by an address\n")
+
+    while True:
+        choice = input(colored("  Enter choice (1 or 2): ", "cyan"))
+        if choice in ["1", "2"]:
+            return choice
+        print(colored("  Invalid choice. Please enter 1 or 2.", "red"))
+
+
 def main():
+    args = parse_args()
+
+    # Determine mode
+    if args.rewards:
+        # Direct rewards mode via flag
+        run_rewards_mode(args.rewards, args.config)
+    elif args.profitability:
+        # Direct profitability mode via flag
+        run_profitability_mode(args.config, args.stake_trb)
+    else:
+        # Interactive mode
+        choice = interactive_mode_selection()
+        if choice == "1":
+            run_profitability_mode(args.config, args.stake_trb)
+        else:
+            address = input(colored("\n  Enter reporter address: ", "cyan")).strip()
+            if address:
+                run_rewards_mode(address, args.config)
+            else:
+                print(colored("  No address provided. Exiting.", "red"))
+                sys.exit(1)
+
+
+def run_rewards_mode(address: str, config_path: str):
+    """Run historical rewards tracking mode."""
+    print_welcome_message()
+
+    # Load config
+    config = load_config(config_path)
+
+    # Initialize RPC client
+    rpc_endpoint = get_rpc_endpoint(config)
+    rest_endpoint = get_rest_endpoint(config)
+    print(f"Using RPC endpoint: {rpc_endpoint}")
+    print(f"Using REST endpoint: {rest_endpoint}")
+    rpc_client = TellorRPCClient(rpc_endpoint, rest_endpoint)
+
+    # Get chain ID
+    try:
+        chain_id = rpc_client.get_chain_id()
+        print(colored(f"\n  Chain ID: {chain_id}", "green", attrs=["bold"]))
+    except Exception as e:
+        print(f"Error getting chain ID: {e}")
+
+    # Run historical rewards check
+    run_historical_rewards_check(rpc_client, address)
+
+    print_section_header("END")
+
+
+def run_profitability_mode(config_path: str, stake_trb: float = None):
+    """Run network profitability analysis mode."""
     print_welcome_message()
 
     # load configuration
-    config = load_config("config.yaml")
+    config = load_config(config_path)
 
     # Initialize RPC client with both RPC and REST endpoints
     rpc_endpoint = get_rpc_endpoint(config)
@@ -124,6 +256,9 @@ def main():
 
     # Query mint events from recent blocks
     mint_events_data = query_mint_events(rpc_client=rpc_client)
+    mint_sample_blocks = (
+        mint_events_data.get("sampled_block_count", 0) if mint_events_data else 0
+    )
 
     # Calculate expected TBR as sanity check
     minter = Minter()
@@ -135,6 +270,8 @@ def main():
     extra_rewards_amount = 0
     tbr_avg_mint_amount = 0
     extra_rewards_avg_amount = 0
+    total_combined_rewards = 0
+    total_combined_avg = 0
 
     # Check if any events were found
     has_any_events = mint_events_data and (
@@ -160,8 +297,8 @@ def main():
         if has_tbr_events:
             tbr_mint_amount = mint_events_data["total_tbr_minted"]
             tbr_avg_mint_amount = (
-                tbr_mint_amount / mint_events_data["tbr_event_count"]
-                if mint_events_data["tbr_event_count"] > 0
+                tbr_mint_amount / mint_sample_blocks
+                if mint_sample_blocks > 0
                 else 0
             )
         else:
@@ -179,8 +316,8 @@ def main():
         if has_extra_rewards_events:
             extra_rewards_amount = mint_events_data["total_extra_rewards"]
             extra_rewards_avg_amount = (
-                extra_rewards_amount / mint_events_data["extra_rewards_event_count"]
-                if mint_events_data["extra_rewards_event_count"] > 0
+                extra_rewards_amount / mint_sample_blocks
+                if mint_sample_blocks > 0
                 else 0
             )
         else:
@@ -190,15 +327,20 @@ def main():
         # calculate combined rewards
         total_combined_rewards = tbr_mint_amount + extra_rewards_amount
         total_combined_avg = tbr_avg_mint_amount + extra_rewards_avg_amount
+        reporter_rewards_avg_amount = reporter_reward_pool(total_combined_avg)
+        validator_rewards_avg_amount = validator_reward_pool(total_combined_avg)
 
         # Display Inflationary Rewards stats (TBR only) - only if we have TBR events
         if tbr_mint_amount > 0:
             inflationary_rewards_data = {
                 "Inflationary Rewards": " ",
                 "Data Source": "Event-based",
-                "Average Inflationary Rewards Per Block": f"{tbr_avg_mint_amount:,.1f} loya",
-                "Projected Daily Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
-                "Projected Annual Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+                "Sampled Blocks": f"{mint_sample_blocks:,}",
+                "Average Total Inflationary Rewards Per Block": f"{tbr_avg_mint_amount:,.1f} loya",
+                "Reporter Pool Per Block (75%)": f"{reporter_reward_pool(tbr_avg_mint_amount):,.1f} loya",
+                "Validator Pool Per Block (25%)": f"{validator_reward_pool(tbr_avg_mint_amount):,.1f} loya",
+                "Projected Daily Total Inflationary Rewards": f"~ {tbr_avg_mint_amount * (86400 / avg_block_time) / LOYA_PER_TRB:,.0f} TRB",
+                "Projected Daily Reporter Pool": f"~ {reporter_reward_pool(tbr_avg_mint_amount) * (86400 / avg_block_time) / LOYA_PER_TRB:,.0f} TRB",
             }
             print_info_box(
                 "inflationary rewards", inflationary_rewards_data, separators=[1, 2]
@@ -209,9 +351,20 @@ def main():
             extra_rewards_data = {
                 "Extra Rewards": " ",
                 "Data Source": "Event-based",
-                "Average Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
+                "Sampled Blocks": f"{mint_sample_blocks:,}",
+                "Average Total Extra Rewards Per Block": f"{extra_rewards_avg_amount:,.1f} loya",
+                "Reporter Pool Per Block (75%)": f"{reporter_reward_pool(extra_rewards_avg_amount):,.1f} loya",
+                "Validator Pool Per Block (25%)": f"{validator_reward_pool(extra_rewards_avg_amount):,.1f} loya",
             }
             print_info_box("extra rewards", extra_rewards_data, separators=[1, 2])
+
+        reward_split_data = {
+            "Combined Rewards Split": " ",
+            "Average Total Rewards Per Block": f"{total_combined_avg:,.1f} loya",
+            "Average Reporter Pool Per Block": f"{reporter_rewards_avg_amount:,.1f} loya",
+            "Average Validator Pool Per Block": f"{validator_rewards_avg_amount:,.1f} loya",
+        }
+        print_info_box("reward split", reward_split_data, separators=[1])
 
     # Always query and display extra rewards pool information
     print("\nQuerying extra rewards pool module account...")
@@ -222,8 +375,8 @@ def main():
         if has_extra_rewards_events:
             extra_rewards_avg_amount = (
                 mint_events_data["total_extra_rewards"]
-                / mint_events_data["extra_rewards_event_count"]
-                if mint_events_data["extra_rewards_event_count"] > 0
+                / mint_sample_blocks
+                if mint_sample_blocks > 0
                 else 0
             )
 
@@ -275,10 +428,11 @@ def main():
         print("\n")
         expected_inflationary_data = {
             "Expected Inflationary Rewards": " ",
-            "Data Source": "Expected calculation",
-            "Expected Average Rewards Per Block": f"{expected_avg_mint_amount:,.1f} loya",
-            "Expected Daily Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 1e-6:,.0f} TRB",
-            "Expected Annual Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) * 365 * 1e-6:,.0f} TRB",
+            "Data Source": "Formula only; not used for profitability without events",
+            "Expected Total Rewards Per Block": f"{expected_avg_mint_amount:,.1f} loya",
+            "Expected Reporter Pool Per Block (75%)": f"{reporter_reward_pool(expected_avg_mint_amount):,.1f} loya",
+            "Expected Daily Total Rewards": f"~ {expected_avg_mint_amount * (86400 / avg_block_time) / LOYA_PER_TRB:,.0f} TRB",
+            "Expected Daily Reporter Pool": f"~ {reporter_reward_pool(expected_avg_mint_amount) * (86400 / avg_block_time) / LOYA_PER_TRB:,.0f} TRB",
         }
         print_info_box(
             "expected inflationary rewards",
@@ -394,28 +548,60 @@ def main():
     else:
         print("  No addresses found with tip totals > 0")
 
+    dispute_history = None
+    print_section_header("HISTORICAL DISPUTES")
+    try:
+        dispute_history = fetch_dispute_history(rpc_client, timeout_s=120)
+        dispute_summary = {
+            "Total Disputes": f"{dispute_history.total_disputes}",
+            "Open Disputes": f"{dispute_history.open_disputes}",
+            "Total Fees Paid": f"{dispute_history.total_fee_paid_loya / LOYA_PER_TRB:,.3f} TRB",
+            "Total Slashed": f"{dispute_history.total_slash_amount_loya / LOYA_PER_TRB:,.3f} TRB",
+            "Total Burned": f"{dispute_history.total_burned_loya / LOYA_PER_TRB:,.3f} TRB",
+            "Total Voter Rewards": f"{dispute_history.total_voter_reward_loya / LOYA_PER_TRB:,.3f} TRB",
+        }
+        print_info_box("dispute fund flow", dispute_summary, separators=[2])
+
+        dispute_headers, dispute_rows = format_dispute_rows(dispute_history)
+        if dispute_rows:
+            print_table("recent historical disputes", dispute_headers, dispute_rows)
+        else:
+            print("  No historical disputes found")
+    except Exception as e:
+        print(f"  Unable to query dispute history: {e}")
+
     # calculate profitability metrics
-    print_section_header("AVG/MEDIAN VALIDATOR'S PROJECTED PROFITABILITY")
+    print_section_header("AVG/MEDIAN REPORTER PROJECTED PROFITABILITY")
 
     print_info_box("stake distribution repeat", stake_summary, separators=[])
 
-    # Use combined rewards for profitability calculations
-    # If no events found, use expected calculation for profitability
+    # Profitability uses observed reporter TBR only. The chain emits total reward
+    # events, then routes 75% to reporters and 25% to validators.
     if has_any_events:
-        avg_combined_mint_amount = (
-            total_combined_avg  # This includes both TBR and extra rewards
-        )
+        avg_reporter_rewards_amount = reporter_reward_pool(total_combined_avg)
+        reward_data_source = "Event-based reporter pool"
     else:
-        avg_combined_mint_amount = expected_avg_mint_amount  # Use expected TBR only
+        avg_reporter_rewards_amount = 0
+        reward_data_source = "No observed rewards"
+
+    reward_basis_data = {
+        "Profitability Reward Basis": reward_data_source,
+        "Avg Total Rewards Per Block": f"{total_combined_avg:,.1f} loya",
+        "Avg Reporter Pool Per Block (75%)": f"{avg_reporter_rewards_amount:,.1f} loya",
+        "Fee Assumption": f"1 report every {REPORT_INTERVAL_BLOCKS} blocks",
+    }
+    print_info_box("profitability assumptions", reward_basis_data, separators=[1])
 
     avg_proportion_stake = avg_stake / total_tokens_active
     median_proportion_stake = median_stake / total_tokens_active
     avg_profit_per_block = (
-        (avg_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
-    ) * 1e-6
+        (avg_proportion_stake * avg_reporter_rewards_amount)
+        - (avg_fee / REPORT_INTERVAL_BLOCKS)
+    ) / LOYA_PER_TRB
     median_profit_per_block = (
-        (median_proportion_stake * avg_combined_mint_amount) - (avg_fee / 2)
-    ) * 1e-6
+        (median_proportion_stake * avg_reporter_rewards_amount)
+        - (avg_fee / REPORT_INTERVAL_BLOCKS)
+    ) / LOYA_PER_TRB
 
     # Time-based projections
     blocks_per_min = 60 / avg_block_time
@@ -449,15 +635,15 @@ def main():
     print_table("profitability stats", profit_headers, profit_rows)
 
     # Convert loya to TRB for APR calculations
-    avg_combined_mint_amount_trb = avg_combined_mint_amount * 1e-6
-    avg_fee_trb = avg_fee * 1e-6
+    avg_reporter_rewards_amount_trb = avg_reporter_rewards_amount / LOYA_PER_TRB
+    avg_fee_trb = avg_fee / LOYA_PER_TRB
 
     # Calculate and display individual reporter APRs
     print_section_header("LIVE REPORTER APRs")
     reporter_aprs = calculate_reporter_aprs(
         reporters,
         total_tokens_active,
-        avg_combined_mint_amount_trb,
+        avg_reporter_rewards_amount_trb,
         avg_fee_trb,
         avg_block_time,
     )
@@ -465,31 +651,59 @@ def main():
     # Display weighted average, median APRs, and break-even stake in info box
     weighted_avg_apr, median_apr = calculate_apr_avgs(reporter_aprs)
 
-    # Calculate break-even stake amount where APR = 0%
-    #
-    # profit_per_block = (stake / total_stake) * mint_per_block - (fee / 2)
-    # At break-even: profit_per_block = 0
-    # (stake / total_stake) * mint_per_block = fee / 2
-    # stake = (fee / 2) * total_stake / mint_per_block
-    #
-    # Formula: break_even = ((avg_fee / 2) * total_stake) / avg_rewards_per_block
-    calculated_break_even = (
-        (avg_fee_trb / 2) * total_tokens_active
-    ) / avg_combined_mint_amount_trb
+    calculated_break_even, _break_even_mult = calculate_break_even_stake(
+        total_tokens_active,
+        avg_reporter_rewards_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
+        median_stake,
+    )
+    break_even_display = (
+        f"{calculated_break_even:.2f} TRB"
+        if calculated_break_even is not None
+        else "N/A (no observed reporter rewards)"
+    )
 
     apr_averages = {
         "Weighted Avg APR": f"{weighted_avg_apr:.2f}%",
         "Median APR": f"{median_apr:.2f}%",
-        "Break-Even Stake (0% apr)": f"{calculated_break_even:.2f} TRB",
+        "Break-Even Stake (0% apr)": break_even_display,
     }
     print_info_box("current reporter metrics", apr_averages)
+
+    if stake_trb is not None:
+        stake_projection = calculate_stake_profit_projection(
+            stake_trb,
+            total_tokens_active,
+            avg_reporter_rewards_amount_trb,
+            avg_fee_trb,
+            avg_block_time,
+        )
+        projected_status = (
+            "Profitable under current chain-fee assumptions"
+            if stake_projection["profit_per_year"] > 0
+            else "Below current break-even under chain-fee assumptions"
+        )
+        stake_projection_data = {
+            "Stake Amount": f"{stake_trb:,.2f} TRB",
+            "Status": projected_status,
+            "Projected APR": f"{stake_projection['apr']:.2f}%",
+            "Projected Net Per Day": f"{stake_projection['profit_per_day']:,.4f} TRB",
+            "Projected Net Per Month": f"{stake_projection['profit_per_month']:,.2f} TRB",
+            "Projected Net Per Year": f"{stake_projection['profit_per_year']:,.2f} TRB",
+            "Current Break-Even Stake": break_even_display,
+            "Reward Basis": reward_data_source,
+            "Sampled Reward Blocks": f"{mint_sample_blocks:,}",
+            "Cost Scope": "chain fees only; excludes infra, slashing, tips, commissions",
+        }
+        print_info_box("specific stake projection", stake_projection_data, separators=[2, 7])
 
     print_reporter_apr_table(reporter_aprs)
 
     # Generate APR chart with break-even point
     generate_apr_chart(
         total_tokens_active,
-        avg_combined_mint_amount_trb,
+        avg_reporter_rewards_amount_trb,
         avg_fee_trb,
         avg_block_time,
         median_stake,
@@ -504,7 +718,10 @@ def main():
     # Run scenarios analysis
     print_section_header("APR BY TOTAL STAKE")
     stake_results, targets = run_scenarios_analysis(
-        total_tokens_active, avg_combined_mint_amount_trb, avg_fee_trb, avg_block_time
+        total_tokens_active,
+        avg_reporter_rewards_amount_trb,
+        avg_fee_trb,
+        avg_block_time,
     )
 
     # Display target APR points in info box with current APR
@@ -522,15 +739,15 @@ def main():
 
     # Prepare data for CSV export
     if has_any_events:
-        csv_data_source = "Event-based"
-        csv_total_sample = total_combined_rewards * 1e-6
-        csv_avg_inflationary_per_block = tbr_avg_mint_amount
-        csv_avg_extra_per_block = extra_rewards_avg_amount
+        csv_data_source = "Event-based reporter pool"
+        csv_total_sample = reporter_reward_pool(total_combined_rewards) / LOYA_PER_TRB
+        csv_avg_inflationary_per_block = reporter_reward_pool(tbr_avg_mint_amount)
+        csv_avg_extra_per_block = reporter_reward_pool(extra_rewards_avg_amount)
     else:
-        csv_data_source = "Expected calculation"
-        csv_total_sample = expected_mint_amount * 1e-6
+        csv_data_source = "No observed rewards"
+        csv_total_sample = 0
         csv_avg_inflationary_per_block = 0
-        csv_avg_extra_per_block = 0  # No extra rewards in expected calculation
+        csv_avg_extra_per_block = 0
 
     # Calculate projected values based on combined rewards
     total_avg_per_block = csv_avg_inflationary_per_block + csv_avg_extra_per_block
@@ -538,14 +755,16 @@ def main():
     tbr_data = {
         "data_source": csv_data_source,
         "total_tbr_sample": csv_total_sample,
-        "num_blocks_sampled": block_diff,
+        "num_blocks_sampled": mint_sample_blocks or block_diff,
         "avg_inflationary_rewards_per_block": csv_avg_inflationary_per_block,
         "avg_extra_rewards_per_block": csv_avg_extra_per_block,
-        "projected_daily_tbr": total_avg_per_block * (86400 / avg_block_time) * 1e-6,
+        "projected_daily_tbr": total_avg_per_block
+        * (86400 / avg_block_time)
+        / LOYA_PER_TRB,
         "projected_annual_tbr": total_avg_per_block
         * (86400 / avg_block_time)
         * 365
-        * 1e-6,
+        / LOYA_PER_TRB,
     }
 
     reporting_costs_data = {
@@ -597,6 +816,7 @@ def main():
         profitability_data,
         apr_data,
         stake_scenario_data,
+        dispute_history,
     )
 
     print_section_header("END")
